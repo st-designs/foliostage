@@ -7,7 +7,7 @@ Portfolio Generator is focused on reliable website capture and polished portfoli
 - Live URL and saved-site imports
 - Separate or mixed multi-site portfolios
 - Desktop, tablet, and mobile capture
-- Display images, device mockups, showcases, screenshots, and motion exports
+- Display images, device mockups, showcases, single pages, single sections, screenshots, and motion exports
 - Capture quality checks and automatic fallback attempts
 - Reproducible seeded layouts
 - SVG, PNG, JPEG, MP4, GIF, and ZIP export

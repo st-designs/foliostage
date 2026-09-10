@@ -20,6 +20,9 @@ Everything runs locally. There are no accounts, projects, or cloud storage to ma
 - Multi-screen showcase compositions
 - Animated showcases and scrolling page videos
 - Plain or framed viewport and full-page screenshots
+- Up to four legible single-page compositions, always using distinct pages
+- Up to four automatically detected, visually strong single-section compositions
+- Targeted regeneration that recaptures only the pages and device sizes needed by the requested output
 - SVG, PNG, JPEG, MP4, GIF, and ZIP exports
 
 ## A quick look

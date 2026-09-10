@@ -8,8 +8,8 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const sharp = require('sharp');
-const { capture, captureHero, captureShots, recordScrollVideo, setPatience, setOverlayCleanup, setExtraWait, setStitchMode } = require('./lib/capture');
-const { composeLogoSet, composeMockupSet, composeShowcaseSet, composeFeaturedSet, composeShotImage, composeScreensImage, SHOWCASE_LIGHT, SHOWCASE_DENSE } = require('./lib/compose');
+const { capture, captureHero, captureFullPage, captureFullPages, captureIdentity, captureSection, captureSections, captureMobiles, captureTablets, captureShots, recordScrollVideo, setPatience, setOverlayCleanup, setExtraWait, setStitchMode, resetCaptureCancel, requestCaptureCancel } = require('./lib/capture');
+const { composeLogoSet, composeMockupSet, composeShowcaseSet, composeFeaturedSet, composeShotImage, composeSinglePageImage, composeSingleSectionImage, composeScreensImage, SHOWCASE_LIGHT, SHOWCASE_DENSE } = require('./lib/compose');
 const { recordAnimatedShowcase, ANIM_STYLES } = require('./lib/animate');
 const { createImportStore } = require('./lib/imports');
 
@@ -101,6 +101,8 @@ function parseSections(s = {}) {
     display: { on: on(disp), bg: parseBg(disp && disp.bg), radius: rad(disp) },
     mockups: { on: on(s.mockups), count: num(s.mockups && s.mockups.count, 4, 1, 4), devices: devices(s.mockups && s.mockups.devices), pages: pages(s.mockups), bg: parseBg(s.mockups && s.mockups.bg), radius: rad(s.mockups) },
     showcase: { on: on(s.showcase), count: num(s.showcase && s.showcase.count, 4, 1, 6), devices: devices(s.showcase && s.showcase.devices), pages: pages(s.showcase), bg: parseBg(s.showcase && s.showcase.bg), radius: rad(s.showcase) },
+    singlePages: { on: on(s.singlePages, false), count: num(s.singlePages && s.singlePages.count, 4, 1, 4), pages: pages(s.singlePages), bg: parseBg(s.singlePages && s.singlePages.bg), radius: rad(s.singlePages) },
+    singleSections: { on: on(s.singleSections, false), count: num(s.singleSections && s.singleSections.count, 4, 1, 4), pages: pages(s.singleSections), bg: parseBg(s.singleSections && s.singleSections.bg), radius: rad(s.singleSections) },
     showcaseVideo: {
       on: s.showcaseVideo ? on(s.showcaseVideo) : !!(s.showcase && s.showcase.animate),
       count: num(s.showcaseVideo && s.showcaseVideo.count, 1, 1, 4),
@@ -131,22 +133,24 @@ function parseStyle(st = {}) {
   const bgOn = st.bg && st.bg.on;
   const radRaw = st.radius;
   const radius = radRaw === 'seeded' ? 'seeded'
-    : (Number.isFinite(parseInt(radRaw, 10)) ? Math.max(0, Math.min(100, parseInt(radRaw, 10))) : 24);
+    : (Number.isFinite(parseInt(radRaw, 10)) ? Math.max(0, Math.min(100, parseInt(radRaw, 10))) : undefined);
   const ew = parseFloat(st.extraWait);
   return {
-    bg: bgOn ? parseBg(st.bg) : null,
+    bg: bgOn && st.bg.style !== 'auto' ? parseBg(st.bg) : null,
+    autoBackground: !!bgOn,
     radius,
     overlays: !(st.overlays === false),
     patience: ['fast', 'normal', 'thorough'].includes(st.patience) ? st.patience : 'normal',
     extraWait: Number.isFinite(ew) ? Math.max(0, Math.min(30, ew)) : 0,
     stitch: ['auto', 'always', 'off'].includes(st.stitch) ? st.stitch : 'auto',
+    runSeed: parseSeed(st.runSeed),
   };
 }
 const bgIsSet = (bg) => bg && (bg.style !== 'auto' || bg.c1);
-// per-section > master > undefined (compose falls back to its own defaults)
-const effBg = (job, sec) => (bgIsSet(sec.bg) ? sec.bg : (job.style.bg || undefined));
-// per-section number > master number > undefined ('seeded' = per-image random)
-const effRad = (job, sec) => (Number.isFinite(sec.radius) ? sec.radius : (job.style.radius === 'seeded' ? undefined : job.style.radius));
+// An enabled master wins; otherwise the saved section override is used.
+const effBg = (job, sec) => (bgIsSet(job.style.bg) ? job.style.bg : (bgIsSet(sec.bg) ? sec.bg : undefined));
+// per-section number > master number > undefined ('seeded' resolves once/run)
+const effRad = (job, sec) => (Number.isFinite(job.style.radius) ? job.style.radius : (Number.isFinite(sec.radius) ? sec.radius : undefined));
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -205,6 +209,7 @@ function mergedPools(caps) {
     fullPages: usable(caps.flatMap((c) => c.fullPages)),
     mobilePages: usable(caps.flatMap((c) => c.mobilePages)),
     tabletPages: usable(caps.flatMap((c) => c.tabletPages || [])),
+    sections: caps.flatMap((c) => c.sections || []).filter((item) => item && item.buffer),
     heroes: caps.map((c) => c.screenshots.hero).filter(Boolean),
     heroTall: caps[0].screenshots.heroTall,
     hero: caps[0].screenshots.hero,
@@ -220,8 +225,82 @@ function filterPools(pools, pageList) {
   return { ...pools, fullPages: f(pools.fullPages), mobilePages: f(pools.mobilePages), tabletPages: f(pools.tabletPages) };
 }
 
-// ---- fresh crawl: full re-discovery + re-capture of every site (used by
-// generation and by EVERY regenerate — no cached captures are ever reused)
+const sourceId = (item) => `${item.url || ''}|${Math.round(item.top || 0)}`;
+
+function diverseSections(sections, count, rng, excluded = []) {
+  const available = sections.filter((item) => !excluded.includes(sourceId(item)));
+  if (!available.length) return [];
+  const best = Math.max(...available.map((item) => item.score || 0));
+  const strong = available.filter((item) => (item.score || 0) >= Math.max(1, best - 3));
+  const shuffled = strong.sort(() => rng() - 0.5);
+  const chosen = [];
+  const seenUrls = new Set();
+  for (const item of shuffled) {
+    if (!seenUrls.has(item.url)) { chosen.push(item); seenUrls.add(item.url); }
+    if (chosen.length >= count) return chosen;
+  }
+  for (const item of shuffled) {
+    if (!chosen.includes(item)) chosen.push(item);
+    if (chosen.length >= count) break;
+  }
+  return chosen;
+}
+
+function regenerateUrls(job, pageList, rng, count = 3) {
+  const discovered = job.caps.flatMap((cap) => [cap.meta.url, ...(cap.meta.discoveredPages || []), ...cap.fullPages.map((page) => page.url)]);
+  const all = [...new Set(discovered.filter(Boolean))];
+  if (!pageList || !pageList.length) return all.sort(() => rng() - 0.5).slice(0, count);
+  const resolved = pageList.map((value) => { try { return new URL(value, job.url).href; } catch { return null; } }).filter(Boolean);
+  return [...new Set(resolved)].sort(() => rng() - 0.5).slice(0, count);
+}
+
+async function refreshLayoutPools(job, sec, log, rng) {
+  const urls = regenerateUrls(job, sec.pages, rng, Math.max(2, Math.min(4, sec.count || 3)));
+  const desktop = sec.devices ? sec.devices.desktop !== false : true;
+  const mobile = sec.devices ? sec.devices.mobile !== false : false;
+  const tablet = sec.devices ? sec.devices.tablet !== false : false;
+  const pools = mergedPools(job.caps);
+  if (desktop) {
+    pools.fullPages = await captureFullPages(urls, log, job.opts.viewports);
+    // Desktop mockups consume the page captures themselves. Reusing the first
+    // freshly captured page as the availability source avoids reopening the
+    // browser for a redundant homepage/hero pass on every regeneration.
+    pools.heroes = pools.fullPages.map((page) => page.buffer);
+    pools.hero = pools.heroes[0] || pools.hero;
+  }
+  if (mobile) pools.mobilePages = await captureMobiles(urls, log, job.opts.viewports);
+  if (tablet) pools.tabletPages = await captureTablets(urls, log, job.opts.viewports);
+  return pools;
+}
+
+function installFreshPools(job, pools) {
+  const first = job.caps[0];
+  first.fullPages = pools.fullPages || [];
+  first.mobilePages = pools.mobilePages || [];
+  first.tabletPages = pools.tabletPages || [];
+  if (pools.hero) first.screenshots.hero = pools.hero;
+  if (pools.heroTall) first.screenshots.heroTall = pools.heroTall;
+  for (const cap of job.caps.slice(1)) {
+    cap.fullPages = []; cap.mobilePages = []; cap.tabletPages = [];
+  }
+}
+
+async function refreshSectionPool(job, sec, log, rng, count) {
+  const urls = regenerateUrls(job, sec.pages, rng, Math.max(1, Math.min(4, count)));
+  const oldIds = Object.values(job.sourceByKey || {}).filter((value) => typeof value === 'string' && value.includes('|'));
+  const fresh = [];
+  for (const url of urls) {
+    const excluded = oldIds.filter((id) => id.startsWith(`${url}|`)).map((id) => Number(id.split('|').pop()));
+    const needed = Math.max(1, count - fresh.length);
+    fresh.push(...await captureSections(url, excluded, needed, log, job.opts.viewports));
+    if (fresh.length >= count) break;
+  }
+  if (!fresh.length && urls[0]) fresh.push(...await captureSections(urls[0], [], count, log, job.opts.viewports));
+  return fresh;
+}
+
+// ---- fresh crawl: full re-discovery + re-capture of every site for a new
+// generation. Targeted regeneration uses the smaller capture paths below.
 async function freshCrawl(job, log) {
   log('Fresh crawl: re-discovering pages and capturing the live site...');
   const caps = [];
@@ -287,7 +366,8 @@ async function makeVideo(job, log) {
           }
         } catch { log('Video: invalid saved URL — using the homepage.'); }
       }
-      const { path: webm, trimStart } = await recordScrollVideo(videoUrl, work, log, { width: v.width, height: v.height, bg: v.bg });
+      const videoBg = effBg(job, { bg: v.bg ? { style: 'solid', c1: v.bg } : { style: 'auto' } });
+      const { path: webm, trimStart } = await recordScrollVideo(videoUrl, work, log, { width: v.width, height: v.height, bg: videoBg && videoBg.c1 });
       const mp4 = `${job.slug}-scroll.mp4`;
       const mp4Target = outputLocation(job, mp4);
       fs.mkdirSync(mp4Target.dir, { recursive: true });
@@ -366,6 +446,31 @@ async function composeSectionOne(job, name, log, rng) {
       job.variantByKey[`showcase-${i + 1}`] = m.variant;
       save(`showcase-${i + 1}`, m.svg);
     });
+  } else if (name === 'singlePages') {
+    const sec = job.sections.singlePages;
+    const pages = filterPools(pools, sec.pages).fullPages;
+    const unique = [...new Map(pages.map((page) => [page.url, page])).values()];
+    const chosen = unique.sort(() => rng() - 0.5).slice(0, sec.count);
+    log(`Composing ${chosen.length} single page${chosen.length === 1 ? '' : 's'} from distinct pages...`);
+    for (let i = 0; i < chosen.length; i++) {
+      const key = `single-page-${i + 1}`;
+      job.sourceByKey[key] = chosen[i].url;
+      save(key, await composeSinglePageImage(chosen[i].buffer, { bg: effBg(job, sec), brandColor: brand, rng, radius: effRad(job, sec) }));
+    }
+  } else if (name === 'singleSections') {
+    const sec = job.sections.singleSections;
+    let sections = pools.sections;
+    if (sec.pages.length) {
+      const wanted = filterPools({ ...pools, fullPages: sections, mobilePages: [], tabletPages: [] }, sec.pages).fullPages;
+      sections = wanted;
+    }
+    const chosen = diverseSections(sections, sec.count, rng);
+    log(`Composing ${chosen.length} single section${chosen.length === 1 ? '' : 's'}...`);
+    for (let i = 0; i < chosen.length; i++) {
+      const key = `single-section-${i + 1}`;
+      job.sourceByKey[key] = sourceId(chosen[i]);
+      save(key, await composeSingleSectionImage(chosen[i].buffer, { bg: effBg(job, sec), brandColor: brand, rng, radius: effRad(job, sec) }));
+    }
   } else if (name === 'screenshots') {
     const sec = job.sections.screenshots;
     const urls = (sec.urls.length ? sec.urls : ['/']).map((u) => { try { return new URL(u, job.url).href; } catch { return null; } }).filter(Boolean);
@@ -469,14 +574,16 @@ app.post('/api/generate', (req, res) => {
     : urlList.join(', ');
   const job = {
     status: 'queued', log: ['Queued — waiting for the capture engine…'], images: [],
+    progress: { value: 1, completed: 0, total: 1, label: 'Waiting to start' }, cancelRequested: false,
     slug: siteName(urlList[0]) + (urlList.length > 1 ? '-mix' : ''),
     urls: urlList, url: urlList[0],
     sections: sec,
     style: parseStyle(style),
-    crawl: globalPages.length ? globalPages : [...new Set([...sec.mockups.pages, ...sec.showcase.pages])],
+    crawl: globalPages.length ? globalPages : [...new Set([...sec.mockups.pages, ...sec.showcase.pages, ...sec.singlePages.pages, ...sec.singleSections.pages])],
     needTablet: (sec.mockups.on && sec.mockups.devices.tablet) || (sec.showcase.on && sec.showcase.devices.tablet),
     opts: { viewports: frames || {} },
     logoAlt: false,
+    sourceByKey: {},
     source: { type: sourceType, name: sourceName || (sourceType === 'archive' ? 'Archived website' : urlList[0]) },
   };
   if (sourceType === 'archive' && sourceName) job.slug = sourceName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || job.slug;
@@ -484,20 +591,35 @@ app.post('/api/generate', (req, res) => {
   const log = (m) => { job.log.push(m); console.log(`[job ${id}] ${m}`); };
 
   enqueue(async () => {
+    if (job.cancelRequested) { job.status = 'cancelled'; return; }
     job.status = 'running';
     job.log.length = 0;
     try {
+      resetCaptureCancel();
       setPatience(job.style.patience);
       setOverlayCleanup(job.style.overlays);
       setExtraWait(job.style.extraWait);
       setStitchMode(job.style.stitch);
+      const enabled = ['logo', 'display', 'mockups', 'showcase', 'singlePages', 'singleSections', 'showcaseVideo', 'screenshots', 'video'].filter((name) => job.sections[name].on);
+      const setProgress = (value, completed, total, label) => { job.progress = { value, completed, total, label }; };
+      setProgress(5, 0, enabled.length + 1, 'Preparing website');
       log(`Capture patience: ${job.style.patience}${job.style.extraWait ? ` (+${job.style.extraWait}s extra wait per page)` : ''} · overlays ${job.style.overlays ? 'hidden' : 'KEPT as-is'} · stitch ${job.style.stitch}`);
       await freshCrawl(job, log);
+      if (job.cancelRequested) { job.status = 'cancelled'; log('Cancelled.'); return; }
+      setProgress(68, 1, enabled.length + 1, 'Website captured');
+      if (job.style.radius === 'seeded') job.style.radius = 8 + (job.style.runSeed % 29);
+      if (!job.style.bg && job.style.autoBackground) {
+        const backgrounds = ['#e4e6ec', '#ebe7df', '#dfe7e5', '#e7e2eb', '#e3e8ef', '#eee8e2'];
+        job.style.bg = { style: 'solid', c1: backgrounds[job.style.runSeed % backgrounds.length] };
+      }
       job.seed = parseSeed(seed);
       log(`Layout seed: ${job.seed} (re-use it to reproduce this exact arrangement)`);
       const rng = mulberry32(job.seed);
-      for (const name of ['logo', 'display', 'mockups', 'showcase', 'showcaseVideo', 'screenshots', 'video']) {
-        if (job.sections[name].on) await composeSectionOne(job, name, log, rng);
+      for (let index = 0; index < enabled.length; index++) {
+        if (job.cancelRequested) { job.status = 'cancelled'; log('Cancelled.'); return; }
+        await composeSectionOne(job, enabled[index], log, rng);
+        const completed = index + 2, total = enabled.length + 1;
+        setProgress(Math.min(98, Math.round(68 + 30 * (index + 1) / Math.max(1, enabled.length))), completed, total, 'Building portfolio');
       }
       job.meta = {
         title: job.caps[0].meta.title,
@@ -506,12 +628,14 @@ app.post('/api/generate', (req, res) => {
       };
       job.displayName = siteDisplayName(job.meta, job.slug);
       job.favicon = await markPreview(job.caps[0].mark);
+      if (job.cancelRequested) { job.status = 'cancelled'; log('Cancelled.'); return; }
       job.status = 'done';
+      setProgress(100, enabled.length + 1, enabled.length + 1, 'Complete');
       log(`Done. ${job.images.length} files in ${path.join(OUT_DIR, job.slug)}`);
     } catch (e) {
-      job.status = 'error';
+      job.status = job.cancelRequested ? 'cancelled' : 'error';
       job.error = e.message;
-      log(`ERROR: ${e.message}`);
+      log(job.cancelRequested ? 'Cancelled.' : `ERROR: ${e.message}`);
     }
   });
 
@@ -520,9 +644,8 @@ app.post('/api/generate', (req, res) => {
 
 // ------------------------------------------------------------- regenerate
 
-// Regeneration reuses the verified capture pool for layout-only outputs, which
-// makes a new arrangement fast. Outputs whose content itself changes (hero,
-// screenshots, and scroll video) still perform a fresh capture.
+// Regeneration reopens only the pages and viewports needed by the requested
+// output. Discovery metadata stays cached; pixels never do.
 app.post('/api/regenerate', (req, res) => {
   const { jobId, image } = req.body || {};
   const job = jobs.get(String(jobId));
@@ -530,16 +653,20 @@ app.post('/api/regenerate', (req, res) => {
   if (job.status === 'running' || job.status === 'queued') return res.status(409).json({ error: 'A job is already running — wait for it to finish.' });
 
   job.status = 'queued';
+  job.cancelRequested = false;
+  job.progress = { value: 2, completed: 0, total: 2, label: 'Waiting to refresh' };
   const log = (m) => { job.log.push(m); console.log(`[job ${jobId}] ${m}`); };
   log(`— Regenerating ${image} —`);
 
   enqueue(async () => {
+    if (job.cancelRequested) { job.status = 'cancelled'; return; }
     job.status = 'running';
+    resetCaptureCancel();
+    job.progress = { value: 10, completed: 0, total: 2, label: 'Capturing fresh source' };
     setPatience(job.style.patience);
     setOverlayCleanup(job.style.overlays);
     setExtraWait(job.style.extraWait);
     setStitchMode(job.style.stitch);
-    const vps = job.opts.viewports;
     const regenSeed = Math.floor(Math.random() * 1e9);
     const rng = mulberry32(regenSeed);
     log(`Regeneration seed: ${regenSeed}`);
@@ -549,6 +676,10 @@ app.post('/api/regenerate', (req, res) => {
       const brand = () => first().meta.brandColor;
 
       if (image === 'logo' || image === 'wordmark' || image === 'all-logo') {
+        log('Targeted refresh: reopening the homepage for identity assets...');
+        const identity = await captureIdentity(job.url, log, job.opts.viewports);
+        first().logo = identity.logo; first().mark = identity.mark;
+        first().meta.brandColor = identity.brandColor; first().meta.logoIsLight = identity.logoIsLight;
         job.logoAlt = !job.logoAlt;
         log(`Logo: trying ${job.logoAlt ? 'alternate' : 'original'} background...`);
         const set = await composeLogoSet({
@@ -559,16 +690,17 @@ app.post('/api/regenerate', (req, res) => {
         if (image === 'all-logo') { for (const [k, v] of Object.entries(set)) save(k, v); }
         else if (set[image]) save(image, set[image]);
       } else if (image === 'featured' || image === 'hero' || image === 'all-display') {
-        log('Re-capturing the hero fresh...');
-        const { hero, heroTall } = await captureHero(job.url, log, vps);
-        first().screenshots.hero = hero;
-        first().screenshots.heroTall = heroTall;
+        log('Targeted refresh: reopening the homepage for display images...');
+        const { hero, heroTall } = await captureHero(job.url, log, job.opts.viewports);
+        first().screenshots.hero = hero; first().screenshots.heroTall = heroTall;
         const set = await composeFeaturedSet({ heroTall, hero, brandColor: brand(), bg: effBg(job, job.sections.display), rng, radius: effRad(job, job.sections.display) });
         if (image === 'all-display' || image === 'hero') save('hero', set.hero);
         if (image === 'all-display' || image === 'featured') save('featured', set.featured);
       } else if (image === 'video' || image === 'all-video') {
         await makeVideo(job, log);
       } else if (image.startsWith('showcase-video-') || image === 'all-showcasevideo') {
+        log('Targeted refresh: recapturing only the pages and devices needed by showcase video...');
+        installFreshPools(job, await refreshLayoutPools(job, job.sections.showcaseVideo, log, rng));
         if (image === 'all-showcasevideo') {
           for (let i = 1; i <= job.sections.showcaseVideo.count; i++) await makeAnimatedShowcase(job, log, rng, i);
         } else {
@@ -577,12 +709,54 @@ app.post('/api/regenerate', (req, res) => {
       } else if (image.startsWith('shot-') || image === 'all-screenshots') {
         await composeSectionOne(job, 'screenshots', log, rng); // fresh capture of the configured URLs
       } else if (image === 'all-mockups' || image === 'all-showcase') {
-        await composeSectionOne(job, image.replace('all-', ''), log, rng);
+        const name = image === 'all-mockups' ? 'mockups' : 'showcase';
+        log(`Targeted refresh: recapturing only the pages and devices needed by ${name}...`);
+        installFreshPools(job, await refreshLayoutPools(job, job.sections[name], log, rng));
+        await composeSectionOne(job, name, log, rng);
+      } else if (image === 'all-singlepages') {
+        const sec = job.sections.singlePages;
+        const urls = regenerateUrls(job, sec.pages, rng, sec.count);
+        log(`Targeted refresh: recapturing ${urls.length} page${urls.length === 1 ? '' : 's'}...`);
+        const pages = await captureFullPages(urls, log, job.opts.viewports);
+        installFreshPools(job, { ...mergedPools(job.caps), fullPages: pages });
+        await composeSectionOne(job, 'singlePages', log, rng);
+      } else if (image === 'all-singlesections') {
+        const sec = job.sections.singleSections;
+        log('Targeted refresh: rescanning selected pages for new sections...');
+        first().sections = await refreshSectionPool(job, sec, log, rng, sec.count);
+        for (const cap of job.caps.slice(1)) cap.sections = [];
+        await composeSectionOne(job, 'singleSections', log, rng);
+      } else if (image.startsWith('single-page-')) {
+        const urls = regenerateUrls(job, job.sections.singlePages.pages, rng, 8);
+        const alternatives = urls.filter((url) => url !== job.sourceByKey[image]);
+        const url = (alternatives.length ? alternatives : urls)[0];
+        if (url) {
+          log(`Targeted refresh: recapturing ${url}...`);
+          const buffer = await captureFullPage(url, log, job.opts.viewports);
+          job.sourceByKey[image] = url;
+          save(image, await composeSinglePageImage(buffer, { bg: effBg(job, job.sections.singlePages), brandColor: brand(), rng, radius: effRad(job, job.sections.singlePages) }));
+        }
+      } else if (image.startsWith('single-section-')) {
+        log('Targeted refresh: reopening one page and rescanning it for a new section...');
+        const urls = regenerateUrls(job, job.sections.singleSections.pages, rng, 8);
+        let section = null;
+        for (const url of urls) {
+          const oldIds = Object.values(job.sourceByKey).filter((id) => typeof id === 'string' && id.startsWith(`${url}|`));
+          section = await captureSection(url, oldIds.map((id) => Number(id.split('|').pop())), log, job.opts.viewports);
+          if (section) break;
+        }
+        if (!section && urls[0]) section = await captureSection(urls[0], [], log, job.opts.viewports);
+        if (section) {
+          first().sections.push(section);
+          job.sourceByKey[image] = sourceId(section);
+          save(image, await composeSingleSectionImage(section.buffer, { bg: effBg(job, job.sections.singleSections), brandColor: brand(), rng, radius: effRad(job, job.sections.singleSections) }));
+        }
       } else if (image.startsWith('mockup-') || image.startsWith('showcase-')) {
-        const pools = mergedPools(job.caps);
         const current = (job.variantByKey && job.variantByKey[image]) || '';
         if (image.startsWith('mockup-')) {
           const sec = job.sections.mockups;
+          log('Targeted refresh: recapturing only the pages and devices needed by this mockup...');
+          const pools = await refreshLayoutPools(job, sec, log, rng);
           const set = await composeMockupSet({
             ...filterPools(pools, sec.pages), brandColor: brand(), bg: effBg(job, sec), rng,
             count: 1, devices: sec.devices, exclude: current ? [current] : [],
@@ -594,6 +768,8 @@ app.post('/api/regenerate', (req, res) => {
           }
         } else {
           const sec = job.sections.showcase;
+          log('Targeted refresh: recapturing only the pages and devices needed by this showcase...');
+          const pools = await refreshLayoutPools(job, sec, log, rng);
           const family = current.startsWith('dense') ? 'dense' : 'light';
           const set = await composeShowcaseSet({
             ...filterPools(pools, sec.pages), bg: effBg(job, sec), rng, count: 1,
@@ -608,15 +784,27 @@ app.post('/api/regenerate', (req, res) => {
       } else {
         throw new Error(`unknown image "${image}"`);
       }
+      if (job.cancelRequested) { job.status = 'cancelled'; log('Cancelled.'); return; }
       job.status = 'done';
+      job.progress = { value: 100, completed: 2, total: 2, label: 'Complete' };
       log(`Regenerated ${image}.`);
     } catch (e) {
-      job.status = 'done';
-      log(`Regenerate failed: ${e.message.split('\n')[0]}`);
+      job.status = job.cancelRequested ? 'cancelled' : 'done';
+      log(job.cancelRequested ? 'Cancelled.' : `Regenerate failed: ${e.message.split('\n')[0]}`);
     }
   });
 
   res.json({ ok: true });
+});
+
+app.post('/api/job/:id/cancel', (req, res) => {
+  const job = jobs.get(req.params.id);
+  if (!job) return res.status(404).json({ error: 'not found' });
+  if (!['queued', 'running'].includes(job.status)) return res.json({ ok: true, status: job.status });
+  job.cancelRequested = true;
+  requestCaptureCancel();
+  job.progress = { ...(job.progress || {}), label: 'Stopping safely' };
+  res.json({ ok: true, status: 'cancelling' });
 });
 
 // convert a generated MP4 to GIF on demand (960px wide, 12fps, palette)

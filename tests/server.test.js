@@ -17,10 +17,12 @@ test('siteDisplayName preserves explicit website metadata and safely falls back'
 });
 
 test('section and style input is bounded', () => {
-  const sections = parseSections({ mockups: { count: 99, radius: 1000 }, screenshots: { on: true } });
+  const sections = parseSections({ mockups: { count: 99, radius: 1000 }, singlePages: { on: true, count: 99 }, singleSections: { on: true, count: 0 }, screenshots: { on: true } });
   assert.equal(sections.mockups.count, 4);
   assert.equal(sections.mockups.radius, undefined);
   assert.equal(sections.screenshots.on, true);
+  assert.equal(sections.singlePages.count, 4);
+  assert.equal(sections.singleSections.count, 4);
   const style = parseStyle({ radius: 200, extraWait: 90, patience: 'forever' });
   assert.equal(style.radius, 100);
   assert.equal(style.extraWait, 30);

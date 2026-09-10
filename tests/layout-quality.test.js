@@ -4,6 +4,8 @@ const sharp = require('sharp');
 const {
   composeMockupImage,
   composeScreensImage,
+  composeSinglePageImage,
+  composeSingleSectionImage,
   MOCKUP_VARIANTS,
   SHOWCASE_LIGHT,
   SHOWCASE_DENSE,
@@ -71,4 +73,21 @@ test('every showcase variant fills the canvas with real screens', async () => {
     assert.match(svg, /<image\b/, `${variant} has captured screens`);
     assert.ok(await contentRatio(svg) > 0.34, `${variant} should use the canvas well`);
   }
+});
+
+test('single page and section compositions stay legible on portfolio canvases', async () => {
+  const [page, section] = await Promise.all([patterned(1440, 4800, 210), patterned(1440, 720, 18)]);
+  const options = { bg: { style: 'solid', c1: '#e4e6ec' }, brandColor: '#234567', rng, radius: 18 };
+  const pageSvg = await composeSinglePageImage(page, options);
+  const sectionSvg = await composeSingleSectionImage(section, options);
+  assert.match(pageSvg, /width="948" height="1080"/);
+  assert.match(sectionSvg, /width="1920" height="1080"/);
+  assert.match(pageSvg, /data:image\/png;base64,/);
+  assert.match(sectionSvg, /data:image\/png;base64,/);
+  for (const svg of [pageSvg, sectionSvg]) {
+    assert.match(svg, /rx="18"/);
+    assert.ok(await contentRatio(svg) > 0.2);
+  }
+  assert.match(pageSvg, /x="100"/);
+  assert.match(pageSvg, /y="\d+" width="\d+" height="[1-9]\d{3,}"/);
 });

@@ -6,8 +6,10 @@
 <title>Portfolio Generator</title>
 <script src="/vendor/jszip.min.js"></script>
 <style>
-  :root { --canvas:#f7f7f9; --panel:#fdfdfe; --bg:#fff; --surface:#f2f3f6; --surface-2:#e7e9ee; --accent:#3b4a9e; --accent-8:rgba(59,74,158,.08); --accent-12:rgba(59,74,158,.12); --text:#17181c; --text-2:#61646e; --text-3:#9a9ea9; --line:#e5e7ec; --line-2:#eff0f4; --attention:#b4531f; --attention-10:rgba(180,83,31,.10); --navy:var(--accent); --navy-2:#303d87; --grey:var(--surface-2); --border:var(--line); --muted:var(--text-2); --gutter:10px; --sidebar-w:252px; --titlebar:48px; --panel-r:14px; }
-  * { box-sizing:border-box; margin:0; }
+  :root { --canvas:#f7f7f9; --panel:#fdfdfe; --bg:#fff; --surface:#f2f3f6; --surface-2:#e7e9ee; --accent:#3b4a9e; --accent-8:rgba(59,74,158,.08); --accent-12:rgba(59,74,158,.12); --text:#17181c; --text-2:#61646e; --text-3:#9a9ea9; --line:#e5e7ec; --line-2:#eff0f4; --attention:#b4531f; --attention-10:rgba(180,83,31,.10); --navy:var(--accent); --navy-2:#303d87; --grey:var(--surface-2); --border:var(--line); --muted:var(--text-2); --gutter:10px; --sidebar-w:296px; --titlebar:48px; --panel-r:14px; }
+  :root { interpolate-size:allow-keywords; }
+  * { box-sizing:border-box; margin:0; scrollbar-width:none; -ms-overflow-style:none; }
+  *::-webkit-scrollbar { display:none; width:0; height:0; }
   body { font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif; background:var(--canvas); color:var(--text); display:flex; height:100vh; overflow:hidden; font-size:13px; }
   button,input,textarea,select { font:inherit; }
   button { -webkit-user-select:none; user-select:none; }
@@ -16,8 +18,7 @@
   #resizer { width:7px; cursor:col-resize; flex-shrink:0; background:transparent; position:relative; }
   #resizer::after { content:""; position:absolute; top:calc(var(--titlebar) + 16px); bottom:16px; left:3px; width:1px; border-radius:1px; background:transparent; transition:background .15s; }
   #resizer:hover::after,#resizer.active::after { background:#c7cad2; }
-  .side-scroll { flex:1; overflow-y:auto; padding:24px 16px 20px; scrollbar-width:none; -ms-overflow-style:none; }
-  .side-scroll::-webkit-scrollbar { display:none; width:0; height:0; }
+  .side-scroll { flex:1; overflow-y:auto; padding:24px 16px 20px; }
   body.desktop .side-scroll { padding-top:56px; }
   aside h1 { font-size:20px; line-height:1.25; letter-spacing:-.025em; font-weight:650; }
   aside p.sub { color:var(--text-2); font-size:12px; margin:6px 0 20px; line-height:1.55; }
@@ -40,28 +41,31 @@
   button.primary:active { transform:scale(.985); }
   button.primary:disabled { opacity:.45; cursor:default; transform:none; }
   .source-tabs { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:3px; margin-bottom:10px; background:var(--surface); border-radius:9px; }
-  .source-tab { border:0; border-radius:7px; padding:7px 5px; background:transparent; color:var(--text-2); font-size:11.5px; font-weight:600; cursor:pointer; }
+  .source-tab { border:0; border-radius:7px; padding:7px 5px; background:transparent; color:var(--text-2); font-size:11.5px; font-weight:600; cursor:pointer; transition:background .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease; }
+  .source-tab:active { transform:scale(.98); }
   .source-tab.active { background:var(--bg); color:var(--text); box-shadow:0 1px 3px rgba(20,24,35,.10); }
   .archive-drop { border:1px dashed #c8cbd4; border-radius:10px; padding:14px 10px; text-align:center; color:var(--text-2); background:var(--surface); transition:border-color .15s,background .15s; }
   .archive-drop.drag { border-color:var(--accent); background:var(--accent-8); }
   .archive-drop strong { display:block; color:var(--text); font-size:12px; margin-bottom:4px; }
   .archive-actions { display:flex; justify-content:center; gap:6px; margin-top:9px; }
   .archive-actions button { background:var(--bg); border:1px solid var(--line); color:var(--text-2); border-radius:7px; padding:5px 8px; font-size:10.5px; cursor:pointer; }
-  .mode-field { margin-top:11px; }
+  .mode-field { margin-top:11px; animation:soft-enter .36s cubic-bezier(.2,.75,.25,1); }
+  #url-source,#archive-source { animation:soft-enter .36s cubic-bezier(.2,.75,.25,1); }
   .mode-description { min-height:32px; margin-top:6px; color:var(--text-3); font-size:11px; line-height:1.45; }
 
   .group-head { font-size:10.5px; font-weight:650; letter-spacing:.08em; text-transform:uppercase; color:var(--text-3); margin:28px 4px 10px; }
   details.secd { border:0; border-radius:9px; background:transparent; margin-bottom:3px; overflow:hidden; }
   details.secd[open] { background:#f8f8fa; box-shadow:inset 0 0 0 1px var(--line-2); }
+  details.secd::details-content { block-size:0; opacity:0; overflow:hidden; transition:block-size .4s cubic-bezier(.2,.75,.25,1),opacity .28s ease,content-visibility .4s allow-discrete; }
+  details.secd[open]::details-content { block-size:auto; opacity:1; }
   details.secd>summary { cursor:pointer; padding:8px 9px; min-height:34px; font-size:12.5px; font-weight:520; color:var(--text); display:flex; align-items:center; gap:7px; list-style:none; border-radius:9px; }
   details.secd>summary:hover { background:var(--accent-8); }
-  details.secd>summary::before { content:'›'; font-size:17px; color:var(--text-3); line-height:10px; transform-origin:center; transition:transform .15s; }
+  details.secd>summary::before { content:'›'; font-size:17px; color:var(--text-3); line-height:10px; transform-origin:center; transition:transform .34s cubic-bezier(.2,.75,.25,1); }
   details.secd[open]>summary::before { transform:rotate(90deg); }
   details.secd>summary input { width:auto; accent-color:var(--accent); margin:0; }
   .secd-body { padding:8px 12px 16px 28px; }
-  .savebtn,.mini,.regen,.dl,.rm,.dl-ghost,.dl-light,.exp-add,.exp-cancel { background:var(--bg); border:1px solid var(--line); color:var(--text-2); border-radius:8px; padding:6px 11px; font-size:11.5px; font-weight:550; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
-  .savebtn:hover,.mini:hover,.regen:hover,.dl:hover,.rm:hover,.dl-ghost:hover,.dl-light:hover,.exp-add:hover,.exp-cancel:hover { background:var(--surface); border-color:#d3d5dc; color:var(--text); }
-  .savebtn.saved { background:var(--accent-8); border-color:var(--accent); color:var(--accent); }
+  .mini,.regen,.dl,.rm,.dl-ghost,.dl-light,.exp-add,.exp-cancel { background:var(--bg); border:1px solid var(--line); color:var(--text-2); border-radius:8px; padding:6px 11px; font-size:11.5px; font-weight:550; cursor:pointer; transition:background .24s,border-color .24s,color .24s,transform .24s; }
+  .mini:hover,.regen:hover,.dl:hover,.rm:hover,.dl-ghost:hover,.dl-light:hover,.exp-add:hover,.exp-cancel:hover { background:var(--surface); border-color:#d3d5dc; color:var(--text); }
   .devrow { display:flex; gap:12px; font-size:12px; margin-bottom:10px; flex-wrap:wrap; }
   .devrow label { display:flex; align-items:center; gap:5px; font-weight:450; margin:0; color:var(--text-2); }
   .devrow input { width:auto; accent-color:var(--accent); }
@@ -71,11 +75,34 @@
   .ovr { border-top:1px solid var(--line); margin-top:11px; padding-top:10px; }
   .ovr>.ovr-label { font-size:10.5px; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
 
-  .log-wrap { border-top:1px solid var(--line); padding:12px 16px 16px; background:var(--panel); }
-  .log-wrap summary { cursor:pointer; font-size:11.5px; font-weight:550; color:var(--text-2); padding:3px 0; }
-  #log { background:#17191f; color:#c8d3d0; font:10.5px/1.62 ui-monospace,SFMono-Regular,Menlo,monospace; border-radius:9px; padding:11px; height:160px; min-height:78px; max-height:55vh; overflow:auto; white-space:pre-wrap; margin-top:8px; resize:vertical; }
+  .log-wrap { display:none; border-top:1px solid var(--line); padding:12px 16px 16px; background:var(--panel); }
+  .log-wrap.visible { display:block; }
+  .log-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; color:var(--text-2); font-size:11px; font-weight:600; }
+  .log-shortcut { color:var(--text-3); font:10px ui-monospace,SFMono-Regular,Menlo,monospace; }
+  #log { background:#17191f; color:#c8d3d0; font:10.5px/1.62 ui-monospace,SFMono-Regular,Menlo,monospace; border-radius:9px; padding:11px; height:160px; min-height:78px; max-height:55vh; overflow:auto; white-space:pre-wrap; resize:vertical; }
 
-  main { flex:1; overflow-y:auto; padding:var(--titlebar) 24px 40px 20px; min-width:0; }
+  main { flex:1; min-width:0; height:100vh; overflow:hidden; padding:var(--gutter) 24px var(--gutter) 20px; display:flex; flex-direction:column; isolation:isolate; }
+  #progress-card { display:none; width:100%; max-width:620px; margin:0 auto 14px; padding:18px; background:var(--panel); border:1px solid var(--line); border-radius:15px; box-shadow:0 8px 28px rgba(20,24,35,.07); }
+  #progress-card.active { display:block; animation:progress-enter .42s cubic-bezier(.2,.75,.25,1); }
+  #progress-card.leaving { pointer-events:none; animation:progress-leave .3s ease forwards; }
+  main.progress-empty #progress-card { margin-top:clamp(145px,28vh,270px); }
+  main.progress-empty #sites-frame { display:none; }
+  .progress-main { display:flex; align-items:stretch; gap:14px; }
+  .progress-icon { width:62px; min-height:62px; flex:0 0 62px; border-radius:13px; overflow:hidden; box-shadow:0 4px 14px rgba(37,44,91,.14); }
+  .progress-icon img { display:block; width:100%; height:100%; }
+  .progress-copy { min-width:0; flex:1; }
+  .progress-top { display:flex; align-items:flex-start; gap:10px; }
+  .progress-title { flex:1; font-size:13px; font-weight:650; color:var(--text); }
+  .progress-batch { display:none; margin-top:3px; font-size:10.5px; color:var(--text-2); }
+  .progress-batch.visible { display:block; }
+  .progress-status { display:flex; align-items:flex-end; gap:10px; margin-top:3px; }
+  .progress-percent { margin-left:auto; color:var(--accent); font-size:11px; font-weight:650; font-variant-numeric:tabular-nums; }
+  .progress-detail { min-width:0; font-size:10px; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .progress-track { height:3px; margin-top:7px; overflow:hidden; border-radius:2px; background:var(--surface-2); }
+  .progress-fill { display:block; width:1%; height:100%; border-radius:2px; background:var(--accent); transition:width .35s ease; }
+  .progress-actions { display:flex; justify-content:flex-end; margin-top:8px; }
+  .progress-cancel { background:#fff9f6; border:1px solid #eccfc0; border-radius:7px; padding:4px 9px; color:var(--attention); font-size:10px; font-weight:550; cursor:pointer; }
+  .progress-cancel:hover { border-color:#dbad94; background:var(--attention-10); }
   .empty { max-width:560px; margin:clamp(130px,27vh,260px) auto 0; text-align:center; color:var(--text-2); }
   .empty .empty-mark { width:68px; height:68px; margin:0 auto 18px; border-radius:18px; overflow:hidden; box-shadow:0 9px 24px rgba(37,44,91,.12); }
   .empty .empty-mark img { width:100%; height:100%; display:block; }
@@ -85,30 +112,32 @@
   .empty-steps li { display:flex; align-items:center; white-space:nowrap; }
   .empty-steps li + li::before { content:"\2192"; margin:0 10px; color:var(--text-3); }
   .empty-steps strong { margin-right:4px; color:var(--text-1); font-weight:600; }
-  #session-head { position:sticky; top:0; z-index:20; background:var(--panel); color:var(--text); margin:0 0 24px; padding:10px 12px; min-height:48px; border:1px solid var(--line); border-radius:13px; display:flex; align-items:center; gap:9px; box-shadow:0 4px 16px rgba(20,24,35,.05); flex-wrap:wrap; }
+  #session-head { position:relative; z-index:50; flex:0 0 auto; background:var(--panel); color:var(--text); margin:0 24px 6px; padding:10px 12px; min-height:48px; border:1px solid var(--line); border-radius:13px; display:flex; align-items:center; gap:9px; box-shadow:none; flex-wrap:wrap; }
   #session-head .meta,.site-head .meta { color:var(--text-3); font-size:11.5px; }
   #session-head .grow,.site-head .grow,.cat-row .grow { flex:1; }
   .dl-light,.exp-go { background:var(--accent); border-color:var(--accent); color:#fff; }
   .dl-light:hover,.exp-go:hover { background:#33418d; border-color:#33418d; color:#fff; }
   .dl-light:disabled,.dl-ghost:disabled,.mini:disabled { opacity:.4; cursor:default; }
 
-  .site { margin-bottom:24px; background:var(--panel); border:1px solid var(--line); border-radius:15px; overflow:visible; box-shadow:0 5px 22px rgba(20,24,35,.045); }
-  .site-head { position:sticky; top:72px; z-index:15; display:flex; align-items:center; gap:11px; min-height:62px; background:color-mix(in srgb,var(--panel) 96%,transparent); backdrop-filter:blur(16px); padding:10px 12px; border-radius:14px 14px 0 0; box-shadow:0 8px 20px rgba(20,24,35,.055); }
-  .site-head-main { display:flex; align-items:center; gap:11px; min-width:0; cursor:pointer; }
+  #sites-frame { position:relative; flex:1 1 auto; min-height:0; overflow:hidden; }
+  #sites-frame::before { content:""; position:absolute; z-index:35; top:0; left:0; right:0; height:72px; background:var(--canvas); pointer-events:none; }
+  #sites { height:100%; overflow-y:auto; overflow-x:hidden; padding:10px 24px 40px; scrollbar-gutter:auto; }
+  .site { margin-bottom:14px; background:transparent; border:0; border-radius:15px; overflow:visible; box-shadow:none; }
+  .site-head { position:sticky; top:10px; z-index:40; display:flex; align-items:center; gap:11px; min-height:62px; background:#fff; padding:10px 12px; border:1px solid #dfe1e7; border-radius:14px 14px 0 0; box-shadow:none; cursor:pointer; transition:background .24s ease,border-color .24s ease; }
+  .site-head:hover { background:#fefeff; border-color:#d7dae2; }
+  .site-head-main { display:flex; align-items:center; gap:11px; min-width:0; }
   .site-icon { width:38px; height:38px; flex:0 0 38px; border:1px solid var(--line); border-radius:11px; object-fit:contain; background:var(--bg); padding:4px; }
   .site-icon-fallback { display:grid; place-items:center; color:white; background:var(--accent); padding:0; font-size:15px; font-weight:700; }
   .site-title { min-width:0; }
   .site-head h2 { font-size:15px; letter-spacing:-.01em; font-weight:620; }
   .site-sub { margin-top:3px; color:var(--text-3); font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:430px; }
   .quality-badge { color:#32604a; background:#edf7f1; border-radius:999px; padding:4px 8px; font-size:10.5px; font-weight:650; }
-  .site-toggle { width:30px; height:30px; padding:0; border:0; border-radius:8px; color:var(--text-3); background:transparent; cursor:pointer; font-size:21px; transform:rotate(90deg); transition:transform .16s,background .15s; }
-  .site-toggle:hover { background:var(--surface); color:var(--text); }
-  .site.collapsed .site-toggle { transform:rotate(0); }
   .site.collapsed .site-body { display:none; }
   .site.collapsed .site-head { border-radius:14px; }
-  .site-body { padding:0 16px 24px; border-top:1px solid var(--line-2); border-radius:0 0 14px 14px; overflow:hidden; }
-  .rm { border-color:transparent; background:transparent; color:var(--attention); }
-  .rm:hover { border-color:transparent; background:var(--attention-10); color:var(--attention); }
+  .site-body { position:relative; z-index:1; margin-top:-1px; padding:0 16px 24px; background:var(--panel); border:1px solid var(--line); border-top-color:var(--line-2); border-radius:0 0 14px 14px; overflow:hidden; }
+  main.reveal-results .site { animation:results-enter .48s cubic-bezier(.2,.75,.25,1) both; }
+  .rm { border-color:#eccfc0; background:#fff9f6; color:var(--attention); }
+  .rm:hover { border-color:#dbad94; background:var(--attention-10); color:var(--attention); }
   .cat-row { display:flex; align-items:center; gap:8px; margin:24px 3px 12px; }
   .cat-head { font-size:10.5px; font-weight:650; letter-spacing:.08em; text-transform:uppercase; color:var(--text-3); }
   .mini { padding:5px 9px; font-size:10.5px; }
@@ -123,10 +152,18 @@
   .shot .bar .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-2); }
   .badge { display:inline-block; background:var(--surface); border-radius:5px; padding:1px 5px; font-size:10px; color:var(--text-3); margin-left:4px; }
   .actions { display:flex; gap:7px; align-items:center; white-space:nowrap; }
-  .actions a { color:var(--accent); font-weight:550; text-decoration:none; font-size:11.5px; cursor:pointer; }
+  .actions a { color:var(--text-2); font-weight:550; text-decoration:none; font-size:10.5px; cursor:pointer; border:1px solid var(--line); border-radius:7px; padding:4px 7px; background:var(--bg); }
   .regen { padding:4px 7px; font-size:10.5px; }
   .pick { position:absolute; top:10px; left:10px; width:20px; height:20px; accent-color:var(--accent); opacity:0; transition:opacity .12s; z-index:5; cursor:pointer; }
   .shot:hover .pick,.pick:checked { opacity:1; }
+
+  @keyframes soft-enter { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+  @keyframes progress-enter { from { opacity:0; transform:translateY(-7px) scale(.992); } to { opacity:1; transform:none; } }
+  @keyframes progress-leave { to { opacity:0; transform:translateY(-5px) scale(.995); } }
+  @keyframes results-enter { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  @media (prefers-reduced-motion:reduce) {
+    *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; }
+  }
 
   #lightbox,#exp { position:fixed; inset:0; background:rgba(18,20,27,.58); display:none; z-index:100; }
   #lightbox.open { display:flex; flex-direction:column; }
@@ -167,8 +204,8 @@
     <div class="field" id="url-source">
       <label for="url">Website URL<span style="font-weight:400;color:#6b7c88"> — one per line</span></label>
       <textarea id="url" rows="2" style="height:auto;min-height:44px" placeholder="https://example.com"></textarea>
-      <div class="mode-field">
-        <label for="url-mode">Mode</label>
+      <div class="mode-field" id="url-mode-field">
+        <label for="url-mode">Mode <span style="font-weight:400;color:var(--text-3)">— multiple URLs</span></label>
         <select id="url-mode">
           <option value="separate" selected>Separate portfolios</option>
           <option value="mix">Mix into one portfolio</option>
@@ -209,7 +246,6 @@
             <input id="bgc2-logo" placeholder="2nd color" style="display:none">
           </div>
         </div>
-        <button class="savebtn" onclick="saveSection('logo', this)">Save settings</button>
       </div>
     </details>
 
@@ -225,7 +261,6 @@
           </div>
           <input id="rad-display" placeholder="Corner radius — master (24)" inputmode="numeric">
         </div>
-        <button class="savebtn" onclick="saveSection('display', this)">Save settings</button>
       </div>
     </details>
 
@@ -251,7 +286,6 @@
           </div>
           <input id="rad-mockups" placeholder="Corner radius — master (24)" inputmode="numeric">
         </div>
-        <button class="savebtn" onclick="saveSection('mockups', this)">Save settings</button>
       </div>
     </details>
 
@@ -277,7 +311,32 @@
           </div>
           <input id="rad-showcase" placeholder="Corner radius — master (24)" inputmode="numeric">
         </div>
-        <button class="savebtn" onclick="saveSection('showcase', this)">Save settings</button>
+      </div>
+    </details>
+
+    <details class="secd" id="sd-singlepages">
+      <summary><input type="checkbox" id="on-singlepages" checked onclick="event.stopPropagation()"> Single pages</summary>
+      <div class="secd-body">
+        <div class="hint" style="margin:0 0 8px">One legible page on a portrait canvas with equal top and side margins. Long pages continue below the frame instead of shrinking.</div>
+        <div class="pair" style="margin-bottom:10px"><div><label>How many</label><select id="sp-count"><option>1</option><option>2</option><option>3</option><option selected>4</option></select></div></div>
+        <label>Pages (optional)</label><textarea id="pages-singlepages" placeholder="Choose distinct pages automatically"></textarea>
+        <div class="ovr"><div class="ovr-label">Style override</div><div class="bgrow">
+          <select id="bgs-singlepages"><option value="auto">Auto</option><option value="solid">Solid</option><option value="gradient">Gradient</option></select>
+          <input id="bgc1-singlepages" placeholder="#d5d8df"><input id="bgc2-singlepages" placeholder="2nd color" style="display:none">
+        </div><input id="rad-singlepages" placeholder="Corner radius — master" inputmode="numeric"></div>
+      </div>
+    </details>
+
+    <details class="secd" id="sd-singlesections">
+      <summary><input type="checkbox" id="on-singlesections" checked onclick="event.stopPropagation()"> Single sections</summary>
+      <div class="secd-body">
+        <div class="hint" style="margin:0 0 8px">Strong, visually distinct sections detected across the website and presented one per image.</div>
+        <div class="pair" style="margin-bottom:10px"><div><label>How many</label><select id="ssn-count"><option>1</option><option>2</option><option>3</option><option selected>4</option></select></div></div>
+        <label>Pages (optional)</label><textarea id="pages-singlesections" placeholder="Choose strong sections automatically"></textarea>
+        <div class="ovr"><div class="ovr-label">Style override</div><div class="bgrow">
+          <select id="bgs-singlesections"><option value="auto">Auto</option><option value="solid">Solid</option><option value="gradient">Gradient</option></select>
+          <input id="bgc1-singlesections" placeholder="#d5d8df"><input id="bgc2-singlesections" placeholder="2nd color" style="display:none">
+        </div><input id="rad-singlesections" placeholder="Corner radius — master" inputmode="numeric"></div>
       </div>
     </details>
 
@@ -304,7 +363,6 @@
           </div>
           <input id="rad-scvid" placeholder="Corner radius — master (24)" inputmode="numeric">
         </div>
-        <button class="savebtn" onclick="saveSection('showcaseVideo', this)">Save settings</button>
       </div>
     </details>
 
@@ -337,7 +395,6 @@
           </div>
           <input id="rad-screenshots" placeholder="Corner radius — master (24)" inputmode="numeric">
         </div>
-        <button class="savebtn" onclick="saveSection('screenshots', this)">Save settings</button>
       </div>
     </details>
 
@@ -357,7 +414,6 @@
           <label>Background color</label>
           <input id="vid-bg" placeholder="Page's own (default)">
         </div>
-        <button class="savebtn" onclick="saveSection('video', this)">Save settings</button>
       </div>
     </details>
 
@@ -366,10 +422,10 @@
       <summary style="padding-left:14px">Master style &amp; capture</summary>
       <div class="secd-body">
         <div class="devrow" style="margin-top:6px">
-          <label><input type="checkbox" id="ms-bg-on"> Master background (overrides section defaults)</label>
+          <label><input type="checkbox" id="ms-bg-on" checked> Master background (overrides section defaults)</label>
         </div>
         <div class="bgrow" id="ms-bg-row" style="display:none">
-          <select id="bgs-master"><option value="solid">Solid</option><option value="gradient">Gradient</option></select>
+          <select id="bgs-master"><option value="auto">Random each run</option><option value="solid">Solid</option><option value="gradient">Gradient</option></select>
           <input id="bgc1-master" placeholder="#0e2a3a">
           <input id="bgc2-master" placeholder="2nd color" style="display:none">
         </div>
@@ -380,14 +436,13 @@
           </div>
           <div>
             <label>&nbsp;</label>
-            <label style="display:flex;align-items:center;gap:6px;font-weight:500;margin-top:9px"><input type="checkbox" id="ms-radius-seeded" style="width:auto;accent-color:var(--navy)"> Seeded</label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:500;margin-top:9px"><input type="checkbox" id="ms-radius-seeded" checked style="width:auto;accent-color:var(--navy)"> Random each run</label>
           </div>
         </div>
-        <div class="hint" style="margin:0 0 10px">Radius of the screenshot frames inside every image. Sections can override. Seeded = random per image.</div>
-        <button class="savebtn" onclick="saveSection('master', this)">Save settings</button>
+        <div class="hint" style="margin:0 0 10px">One background and radius are generated for the whole run, including multiple websites. Turn a master control off or clear its value to use saved section overrides.</div>
       </div>
     </details>
-    <details class="secd" id="sd-capture" open>
+    <details class="secd" id="sd-capture">
       <summary style="padding-left:14px">Capture &amp; loading</summary>
       <div class="secd-body">
         <div class="field" style="margin-top:6px">
@@ -428,7 +483,6 @@
           <div><input id="mw" placeholder="Mobile W 390"></div>
           <div><input id="mh" placeholder="H 844"></div>
         </div>
-        <button class="savebtn" onclick="saveSection('master', this)">Save settings</button>
       </div>
     </details>
 
@@ -444,16 +498,13 @@
           <label for="seed">Layout seed</label>
           <input id="seed" placeholder="Random each run">
         </div>
-        <button class="savebtn" onclick="saveSection('general', this)">Save settings</button>
       </div>
     </details>
   </div>
 
-  <div class="log-wrap">
-    <details id="logbox">
-      <summary>Progress log</summary>
-      <div id="log">Waiting for the first run...</div>
-    </details>
+  <div class="log-wrap" id="diagnostics" aria-hidden="true">
+    <div class="log-head"><span>Diagnostics</span><span class="log-shortcut">⌘⇧C</span></div>
+    <div id="log">Waiting for the first run...</div>
   </div>
 </aside>
 
@@ -461,14 +512,22 @@
 
 <main>
   <div id="session-head" style="display:none">
+    <input type="checkbox" id="pick-global" aria-label="Select every output" onchange="toggleScopeSelection('global',0,'',this.checked)">
     <strong style="font-size:14px">Results</strong>
     <span class="meta" id="session-count"></span>
     <span class="grow"></span>
-    <button class="dl-ghost" onclick="selectAllGlobal()">Select all</button>
-    <button class="dl-ghost" id="dl-selected-global" onclick="downloadSelected()" disabled>Download selected</button>
-    <button class="dl-light" onclick="downloadAll()">Download everything</button>
+    <button class="rm" id="remove-global" onclick="removeScope('global')">Remove all</button>
+    <button class="dl-ghost" id="download-global" onclick="downloadScope('global')">Download all</button>
+    <button class="dl-light" id="regen-global" onclick="regenerateScope('global')">Regenerate all</button>
   </div>
-  <div id="sites"><div class="empty"><div class="empty-mark"><img src="/brand-mark.svg" alt=""></div><h2>Create a portfolio set</h2><p>Add a website, choose the outputs you need, and the app will capture and arrange every screen into presentation-ready mockups.</p><ol class="empty-steps"><li><strong>1.</strong> Add a URL</li><li><strong>2.</strong> Choose outputs</li><li><strong>3.</strong> Generate</li></ol></div></div>
+  <div id="progress-card" role="status" aria-live="polite">
+    <div class="progress-main">
+      <div class="progress-icon" aria-hidden="true"><img src="/brand-mark.svg" alt=""></div>
+      <div class="progress-copy"><div class="progress-top"><div class="progress-title" id="progress-title">Creating portfolio set</div></div><div class="progress-batch" id="progress-batch"></div><div class="progress-status"><div class="progress-detail" id="progress-detail">Getting things ready</div><div class="progress-percent" id="progress-percent">1%</div></div><div class="progress-track"><span class="progress-fill" id="progress-fill"></span></div></div>
+    </div>
+    <div class="progress-actions"><button class="progress-cancel" onclick="cancelCurrentJob()">Cancel</button></div>
+  </div>
+  <div id="sites-frame"><div id="sites"><div class="empty"><div class="empty-mark"><img src="/brand-mark.svg" alt=""></div><h2>Create a portfolio set</h2><p>Add a website, choose the outputs you need, and the app will capture and arrange every screen into presentation-ready mockups.</p><ol class="empty-steps"><li><strong>1.</strong> Add a URL</li><li><strong>2.</strong> Choose outputs</li><li><strong>3.</strong> Generate</li></ol></div></div></div>
 </main>
 
 <div id="lightbox">
@@ -519,12 +578,14 @@ const isDesktop = !!window.portfolioDesktop || new URLSearchParams(location.sear
 if (isDesktop) document.body.classList.add('desktop');
 const EMPTY_HTML = '<div class="empty"><div class="empty-mark"><img src="/brand-mark.svg" alt=""></div><h2>Create a portfolio set</h2><p>Add a website, choose the outputs you need, and the app will capture and arrange every screen into presentation-ready mockups.</p><ol class="empty-steps"><li><strong>1.</strong> Add a URL</li><li><strong>2.</strong> Choose outputs</li><li><strong>3.</strong> Generate</li></ol></div></div>';
 const DIMS = (key) => key === 'logo' ? '1080×1080' : key === 'wordmark' ? 'auto×1080'
-  : isVideoKey(key) ? 'video' : key.startsWith('shot-') ? 'custom' : '1920×1080';
+  : isVideoKey(key) ? 'video' : key.startsWith('shot-') ? 'custom' : key.startsWith('single-page-') ? '948×1080' : '1920×1080';
 const CATEGORIES = [
   { name: 'Logo', match: (k) => k === 'logo' || k === 'wordmark' },
   { name: 'Display Images', match: (k) => k === 'hero' || k === 'featured' },
   { name: 'Mockups', match: (k) => k.startsWith('mockup-') },
   { name: 'Showcase', match: (k) => k.startsWith('showcase-') && !k.startsWith('showcase-video') },
+  { name: 'Single Pages', match: (k) => k.startsWith('single-page-') },
+  { name: 'Single Sections', match: (k) => k.startsWith('single-section-') },
   { name: 'Showcase Videos', match: (k) => k.startsWith('showcase-video') },
   { name: 'Screenshots', match: (k) => k.startsWith('shot-') },
   { name: 'Video', match: (k) => k === 'video' },
@@ -533,6 +594,9 @@ const isVideoKey = (k) => k === 'video' || k === 'showcase-anim' || k.startsWith
 const sessions = [];
 const selected = new Set();
 let busy = false;
+let activeJobId = null;
+let cancelRequested = false;
+let progressHideTimer = null;
 let expQueue = [];
 let sourceMode = 'url';
 let archiveFiles = [];
@@ -594,7 +658,19 @@ for (const eventName of ['dragleave', 'drop']) $('archive-drop').addEventListene
   $('archive-drop').classList.remove('drag');
 });
 $('archive-drop').addEventListener('drop', (event) => setArchiveFiles(event.dataTransfer.files));
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeLightbox(); closeExport(); } });
+function toggleDiagnostics() {
+  const panel = $('diagnostics');
+  const visible = panel.classList.toggle('visible');
+  panel.setAttribute('aria-hidden', String(!visible));
+  if (visible) $('log').scrollTop = $('log').scrollHeight;
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeLightbox(); closeExport(); }
+  if (e.shiftKey && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'c') {
+    e.preventDefault();
+    toggleDiagnostics();
+  }
+});
 const URL_MODE_COPY = {
   separate: 'Creates a separate result section for each website. Branding, colors, and captures stay with that site.',
   mix: 'Combines captures from every website into one portfolio. Branding and colors come from the first website.',
@@ -604,20 +680,27 @@ function updateUrlMode() {
   $('url-mode-description').textContent = URL_MODE_COPY[mode];
   localStorage.setItem('portfolioUrlMode', mode);
 }
+$('url').addEventListener('input', () => {
+  const count = $('url').value.split('\n').map((value) => value.trim()).filter(Boolean).length;
+  $('url-mode-field').style.display = count > 1 ? '' : 'none';
+});
 $('url-mode').value = localStorage.getItem('portfolioUrlMode') === 'mix' ? 'mix' : 'separate';
 $('url-mode').addEventListener('change', updateUrlMode);
 updateUrlMode();
+$('url').dispatchEvent(new Event('input'));
 
-const BG_SECTIONS = ['logo', 'display', 'mockups', 'showcase', 'scvid', 'screenshots', 'master'];
+const BG_SECTIONS = ['logo', 'display', 'mockups', 'showcase', 'singlepages', 'singlesections', 'scvid', 'screenshots', 'master'];
 for (const s of BG_SECTIONS) {
   $('bgs-' + s).addEventListener('change', () => {
     $('bgc2-' + s).style.display = $('bgs-' + s).value === 'gradient' ? '' : 'none';
-    if (s !== 'master') $('bgc1-' + s).style.display = $('bgs-' + s).value === 'auto' ? 'none' : '';
+    $('bgc1-' + s).style.display = $('bgs-' + s).value === 'auto' ? 'none' : '';
   });
   if (s !== 'master') $('bgc1-' + s).style.display = 'none';
 }
 $('ms-bg-on').addEventListener('change', () => { $('ms-bg-row').style.display = $('ms-bg-on').checked ? 'flex' : 'none'; });
 $('ms-radius-seeded').addEventListener('change', () => { $('ms-radius').disabled = $('ms-radius-seeded').checked; });
+$('ms-bg-on').dispatchEvent(new Event('change'));
+$('ms-radius-seeded').dispatchEvent(new Event('change'));
 
 // ---------- settings ----------
 const bgOf = (s) => ({ style: $('bgs-' + s).value, c1: $('bgc1-' + s).value.trim(), c2: $('bgc2-' + s).value.trim() });
@@ -628,7 +711,7 @@ const framesOf = () => ({
 });
 const styleOf = () => ({
   bg: { on: $('ms-bg-on').checked, style: $('bgs-master').value, c1: $('bgc1-master').value.trim(), c2: $('bgc2-master').value.trim() },
-  radius: $('ms-radius-seeded').checked ? 'seeded' : ($('ms-radius').value.trim() || 24),
+  radius: $('ms-radius-seeded').checked ? 'seeded' : $('ms-radius').value.trim(),
   overlays: $('ms-overlays').checked,
   patience: $('ms-patience').value,
   extraWait: $('ms-extrawait').value.trim(),
@@ -639,6 +722,8 @@ function collectSection(name) {
   if (name === 'display') return { on: $('on-display').checked, bg: bgOf('display'), radius: $('rad-display').value.trim() };
   if (name === 'mockups') return { on: $('on-mockups').checked, count: +$('mk-count').value, devices: { desktop: $('mk-desktop').checked, tablet: $('mk-tablet').checked, mobile: $('mk-mobile').checked }, pages: $('pages-mockups').value, bg: bgOf('mockups'), radius: $('rad-mockups').value.trim() };
   if (name === 'showcase') return { on: $('on-showcase').checked, count: +$('sc-count').value, devices: { desktop: $('sc-desktop').checked, tablet: $('sc-tablet').checked, mobile: $('sc-mobile').checked }, pages: $('pages-showcase').value, bg: bgOf('showcase'), radius: $('rad-showcase').value.trim() };
+  if (name === 'singlePages') return { on: $('on-singlepages').checked, count: +$('sp-count').value, pages: $('pages-singlepages').value, bg: bgOf('singlepages'), radius: $('rad-singlepages').value.trim() };
+  if (name === 'singleSections') return { on: $('on-singlesections').checked, count: +$('ssn-count').value, pages: $('pages-singlesections').value, bg: bgOf('singlesections'), radius: $('rad-singlesections').value.trim() };
   if (name === 'showcaseVideo') return { on: $('on-scvid').checked, count: +$('scv-count').value, devices: { desktop: $('scv-desktop').checked, tablet: $('scv-tablet').checked, mobile: $('scv-mobile').checked }, pages: $('pages-scvid').value, bg: bgOf('scvid'), radius: $('rad-scvid').value.trim() };
   if (name === 'screenshots') return { on: $('on-screenshots').checked, urls: $('ss-urls').value, viewport: $('ss-viewport').checked, full: $('ss-full').checked, width: $('ss-w').value.trim(), height: $('ss-h').value.trim(), frame: $('ss-frame').value, bg: bgOf('screenshots'), radius: $('rad-screenshots').value.trim() };
   if (name === 'video') return { on: $('on-video').checked, url: $('vid-url').value.trim(), width: $('vid-w').value.trim(), height: $('vid-h').value.trim(), bg: $('vid-bg').value.trim() };
@@ -646,16 +731,25 @@ function collectSection(name) {
   if (name === 'general') return { pages: $('pages').value, frames: framesOf() };
   return {};
 }
-async function saveSection(name, btn) {
-  const payload = name === 'master'
-    ? { master: collectSection('master'), general: collectSection('general') }
-    : { [name]: collectSection(name) };
-  await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-  btn.classList.add('saved'); btn.textContent = 'Saved ✓';
-  setTimeout(() => { btn.classList.remove('saved'); btn.textContent = 'Save settings'; }, 1600);
+let settingsReady = false;
+let settingsSaveTimer = null;
+function allSettings() {
+  return {
+    logo: collectSection('logo'), display: collectSection('display'), mockups: collectSection('mockups'),
+    showcase: collectSection('showcase'), singlePages: collectSection('singlePages'), singleSections: collectSection('singleSections'),
+    showcaseVideo: collectSection('showcaseVideo'), screenshots: collectSection('screenshots'), video: collectSection('video'),
+    master: collectSection('master'), general: collectSection('general'),
+  };
+}
+function scheduleSettingsSave() {
+  if (!settingsReady) return;
+  clearTimeout(settingsSaveTimer);
+  settingsSaveTimer = setTimeout(() => fetch('/api/settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(allSettings()),
+  }).catch(() => {}), 350);
 }
 function applyBg(s, bg = {}) {
-  if (bg.style) $('bgs-' + s).value = bg.style === 'auto' && s === 'master' ? 'solid' : bg.style;
+  if (bg.style) $('bgs-' + s).value = bg.style;
   $('bgc1-' + s).value = bg.c1 || '';
   $('bgc2-' + s).value = bg.c2 || '';
   $('bgs-' + s).dispatchEvent(new Event('change'));
@@ -679,6 +773,8 @@ function applyBg(s, bg = {}) {
       $('sc-desktop').checked = d.desktop !== false; $('sc-tablet').checked = d.tablet !== false; $('sc-mobile').checked = d.mobile !== false;
       $('pages-showcase').value = s.showcase.pages || ''; applyBg('showcase', s.showcase.bg); $('rad-showcase').value = s.showcase.radius || '';
     }
+    if (s.singlePages) { $('on-singlepages').checked = s.singlePages.on !== false; if (s.singlePages.count) $('sp-count').value = s.singlePages.count; $('pages-singlepages').value = s.singlePages.pages || ''; applyBg('singlepages', s.singlePages.bg); $('rad-singlepages').value = s.singlePages.radius || ''; }
+    if (s.singleSections) { $('on-singlesections').checked = s.singleSections.on !== false; if (s.singleSections.count) $('ssn-count').value = s.singleSections.count; $('pages-singlesections').value = s.singleSections.pages || ''; applyBg('singlesections', s.singleSections.bg); $('rad-singlesections').value = s.singleSections.radius || ''; }
     if (s.showcaseVideo) {
       $('on-scvid').checked = s.showcaseVideo.on !== false;
       if (s.showcaseVideo.count) $('scv-count').value = s.showcaseVideo.count;
@@ -715,20 +811,85 @@ function applyBg(s, bg = {}) {
       $('mw').value = f.mobileWidth || ''; $('mh').value = f.mobileHeight || '';
     }
   } catch {}
+  settingsReady = true;
 })();
 
+document.querySelector('aside').addEventListener('change', scheduleSettingsSave);
+document.querySelector('aside').addEventListener('input', (event) => {
+  if (event.target.matches('input:not([type="file"]), textarea')) scheduleSettingsSave();
+});
+const sidebarStateKey = 'portfolioSidebarSections';
+let savedSidebarState = {};
+try { savedSidebarState = JSON.parse(localStorage.getItem(sidebarStateKey) || '{}'); } catch {}
+document.querySelectorAll('details.secd').forEach((details) => {
+  details.open = savedSidebarState[details.id] === true;
+  details.addEventListener('toggle', () => {
+    savedSidebarState[details.id] = details.open;
+    localStorage.setItem(sidebarStateKey, JSON.stringify(savedSidebarState));
+  });
+});
+
 // ---------- generate ----------
+function showProgress(title, detail = 'Preparing capture…') {
+  clearTimeout(progressHideTimer);
+  $('progress-card').classList.remove('leaving');
+  $('progress-title').textContent = title;
+  $('progress-detail').textContent = detail;
+  $('progress-batch').textContent = '';
+  $('progress-batch').classList.remove('visible');
+  $('progress-percent').textContent = '1%';
+  $('progress-fill').style.width = '1%';
+  $('progress-card').classList.add('active');
+  document.querySelector('main').classList.toggle('progress-empty', sessions.length === 0);
+}
+function updateProgress(job, prefix = '') {
+  const progress = job.progress || {};
+  let value = Math.max(1, Math.min(100, Number(progress.value) || 1));
+  const batch = prefix.trim().match(/(?:Website\s+)?(\d+)\s+of\s+(\d+)/i);
+  if (batch) value = Math.max(1, Math.min(100, Math.round(((+batch[1] - 1) + value / 100) / +batch[2] * 100)));
+  $('progress-percent').textContent = `${value}%`;
+  $('progress-fill').style.width = `${value}%`;
+  const step = progress.total > 1 ? `${progress.completed} of ${progress.total} steps` : '';
+  $('progress-detail').textContent = [progress.label || 'Working', step].filter(Boolean).join(' · ');
+  const batchNode = $('progress-batch');
+  if (batch) {
+    const current = +batch[1], total = +batch[2];
+    const complete = Math.min(total, current - 1 + (job.status === 'done' ? 1 : 0));
+    const unit = /^Website/i.test(prefix.trim()) ? 'websites' : 'refreshes';
+    batchNode.textContent = `${complete} of ${total} ${unit} complete`;
+    batchNode.classList.add('visible');
+  } else {
+    batchNode.textContent = '';
+    batchNode.classList.remove('visible');
+  }
+}
+function hideProgress() {
+  document.querySelector('main').classList.remove('progress-empty');
+  document.querySelector('main').classList.add('reveal-results');
+  $('progress-card').classList.add('leaving');
+  progressHideTimer = setTimeout(() => {
+    $('progress-card').classList.remove('active', 'leaving');
+    document.querySelector('main').classList.remove('reveal-results');
+  }, 320);
+}
 function setBusy(b) {
   busy = b;
   $('go').disabled = b;
   $('go').textContent = b ? 'Generating…' : 'Generate';
   document.querySelectorAll('.regen').forEach((x) => x.disabled = b);
+  if (!b) { activeJobId = null; cancelRequested = false; hideProgress(); }
+}
+async function cancelCurrentJob() {
+  if (!activeJobId || cancelRequested) return;
+  cancelRequested = true;
+  $('progress-detail').textContent = 'Stopping safely…';
+  await fetch('/api/job/' + activeJobId + '/cancel', { method: 'POST' }).catch(() => {});
 }
 async function generate() {
   let urls = $('url').value.trim();
   if (busy || (sourceMode === 'url' && !urls) || (sourceMode === 'archive' && !archiveFiles.length)) return;
   setBusy(true);
-  $('logbox').setAttribute('open', '');
+  showProgress('Creating portfolio set', 'Preparing the websites…');
   $('log').textContent = 'Starting...\n';
   let source = { type: 'url', name: urls.split('\n')[0] || '' };
   if (sourceMode === 'archive') {
@@ -749,10 +910,12 @@ async function generate() {
     sections: {
       logo: collectSection('logo'), display: collectSection('display'),
       mockups: collectSection('mockups'), showcase: collectSection('showcase'),
+      singlePages: collectSection('singlePages'), singleSections: collectSection('singleSections'),
       showcaseVideo: collectSection('showcaseVideo'),
       screenshots: collectSection('screenshots'), video: collectSection('video'),
     },
   };
+  body.style.runSeed = Number.parseInt(body.seed, 10) || Math.floor(Math.random() * 1000000000);
   try {
     const enteredUrls = urls.split('\n').map((value) => value.trim()).filter(Boolean);
     const separate = sourceMode === 'url' && $('url-mode').value === 'separate' && enteredUrls.length > 1;
@@ -763,11 +926,14 @@ async function generate() {
     const failures = [];
     for (let index = 0; index < requests.length; index++) {
       const prefix = requests.length > 1 ? `Website ${index + 1} of ${requests.length}\n` : '';
+      if (requests.length > 1) showProgress('Creating portfolio set', `Website ${index + 1} of ${requests.length}`);
       try {
         const resp = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requests[index]) });
         const { jobId, error } = await resp.json();
         if (!resp.ok || error) throw new Error(error || 'Generation could not start');
+        activeJobId = jobId;
         const job = await waitForJob(jobId, prefix);
+        if (job.status === 'cancelled') break;
         if (job.status === 'error') throw new Error(job.error || 'Generation failed');
         generated.push({ jobId, slug: job.slug, displayName: job.displayName || job.slug, seed: job.seed, images: job.images, favicon: job.favicon, source: job.source, quality: job.meta && job.meta.quality, collapsed: false });
       } catch (error) {
@@ -790,6 +956,7 @@ async function waitForJob(id, prefix = '') {
     const job = await (await fetch('/api/job/' + id)).json();
     $('log').textContent = prefix + job.log.join('\n');
     $('log').scrollTop = $('log').scrollHeight;
+    updateProgress(job, prefix);
     if (job.status !== 'running' && job.status !== 'queued') return job;
   }
 }
@@ -803,29 +970,30 @@ function renderSessions() {
   const bust = Date.now();
   $('sites').innerHTML = sessions.map((s, si) => `
     <div class="site ${s.collapsed ? 'collapsed' : ''}">
-      <div class="site-head">
-        <div class="site-head-main" onclick="toggleSite(${si})">
+      <div class="site-head" role="button" tabindex="0" aria-expanded="${!s.collapsed}" onclick="toggleSite(${si})" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();toggleSite(${si})}">
+        <input type="checkbox" class="scope-pick" aria-label="Select this website" onclick="event.stopPropagation()" onchange="toggleScopeSelection('site',${si},'',this.checked)">
+        <div class="site-head-main">
           ${s.favicon ? `<img class="site-icon" src="${s.favicon}" alt="">` : `<span class="site-icon site-icon-fallback">${escapeHtml((s.displayName || s.slug || 'S').slice(0, 1).toUpperCase())}</span>`}
           <div class="site-title">
             <h2>${escapeHtml(s.displayName || s.slug)}</h2>
-            <div class="site-sub">${escapeHtml(s.source && s.source.type === 'archive' ? `Saved website · ${s.source.name}` : (s.source && s.source.name) || '')} · ${s.images.length} outputs · seed ${s.seed}</div>
+            <div class="site-sub">${escapeHtml(s.source && s.source.type === 'archive' ? `Saved website · ${s.source.name}` : (s.source && s.source.name) || '')}</div>
           </div>
         </div>
-        ${s.quality && s.quality.average ? `<span class="quality-badge">Capture ${s.quality.average}/100</span>` : ''}
         <span class="grow"></span>
-        <button class="dl" onclick="requestExport(siteItems(${si}))">Download all</button>
-        <button class="rm" onclick="removeSite(${si})" title="Remove from view (files stay on disk)">✕ Remove</button>
-        <button class="site-toggle" onclick="toggleSite(${si})" title="${s.collapsed ? 'Expand' : 'Collapse'}">›</button>
+        <button class="rm scope-remove" onclick="event.stopPropagation();removeScope('site',${si})">Remove all</button>
+        <button class="dl scope-download" onclick="event.stopPropagation();downloadScope('site',${si})">Download all</button>
+        <button class="dl-light scope-regen" onclick="event.stopPropagation();regenerateScope('site',${si})">Regenerate all</button>
       </div>
       <div class="site-body">
       ${CATEGORIES.map((cat) => {
         const imgs = s.images.filter((i) => i.key && cat.match(i.key));
         if (!imgs.length) return '';
-        return `<div class="cat-row">
+        return `<div class="cat-row" data-si="${si}" data-cat="${cat.name}">
+          <input type="checkbox" class="scope-pick" aria-label="Select ${cat.name}" onchange="toggleScopeSelection('category',${si},'${cat.name}',this.checked)">
           <span class="cat-head">${cat.name}</span><span class="grow"></span>
-          <button class="mini" onclick="regenerateAll(${si}, '${cat.name}', this)">↻ Regenerate all</button>
-          <button class="mini" onclick="selectCat(${si}, '${cat.name}')">Select all</button>
-          <button class="mini dl-sel" data-si="${si}" data-cat="${cat.name}" onclick="downloadCat(${si}, '${cat.name}')" disabled>Download selected</button>
+          <button class="mini rm scope-remove" onclick="removeScope('category',${si},'${cat.name}')">Remove all</button>
+          <button class="mini scope-download" onclick="downloadScope('category',${si},'${cat.name}')">Download all</button>
+          <button class="mini scope-regen" onclick="regenerateScope('category',${si},'${cat.name}')">Regenerate all</button>
         </div>
         <div class="grid">
           ${imgs.map((img) => {
@@ -842,8 +1010,9 @@ function renderSessions() {
               <div class="bar">
                 <span class="name" title="${img.file}">${img.file}<span class="badge">${DIMS(img.key)}</span></span>
                 <span class="actions">
+                  <button class="regen rm" onclick="removeOne(${si},'${img.key}')">Remove</button>
+                  <a onclick="requestExport([itemOf(${si},'${img.key}')])">Download</a>
                   <button class="regen" onclick="regenerate(${si},'${img.key}',this)">↻ Regenerate</button>
-                  <a onclick="requestExport([itemOf(${si},'${img.key}')])">Save</a>
                 </span>
               </div>
             </div>`;
@@ -852,88 +1021,142 @@ function renderSessions() {
       }).join('')}
       </div>
     </div>`).join('');
+  syncScopeControls();
 }
-function toggleSite(si) {
+async function toggleSite(si) {
   if (!sessions[si]) return;
-  sessions[si].collapsed = !sessions[si].collapsed;
-  renderSessions();
-}
-function removeSite(si) {
-  sessions.splice(si, 1);
-  selected.clear();
-  renderSessions();
-}
-const CAT_TO_ALL = { 'Logo': 'all-logo', 'Display Images': 'all-display', 'Mockups': 'all-mockups', 'Showcase': 'all-showcase', 'Showcase Videos': 'all-showcasevideo', 'Screenshots': 'all-screenshots', 'Video': 'all-video' };
-async function regenerateAll(si, catName, btn) {
-  if (busy) return;
-  const s = sessions[si];
-  setBusy(true);
-  btn.disabled = true;
-  const orig = btn.textContent;
-  btn.textContent = 'Regenerating…';
-  $('logbox').setAttribute('open', '');
-  const resp = await fetch('/api/regenerate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jobId: s.jobId, image: CAT_TO_ALL[catName] }) });
-  if (!resp.ok) {
-    const { error } = await resp.json();
-    alert(error || 'Regenerate failed');
-    setBusy(false); btn.disabled = false; btn.textContent = orig; return;
+  const site = document.querySelectorAll('.site')[si];
+  const body = site && site.querySelector('.site-body');
+  const header = site && site.querySelector('.site-head');
+  const scroller = $('sites');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!site || !body || site.dataset.animating === 'true') return;
+  const keepHeaderStill = (top) => {
+    const shift = header.getBoundingClientRect().top - top;
+    if (Math.abs(shift) > .5) scroller.scrollTop += shift;
+    const residual = header.getBoundingClientRect().top - top;
+    if (Math.abs(residual) > .5) {
+      const margin = Number.parseFloat(site.style.marginTop) || 0;
+      site.style.marginTop = `${Math.max(0, margin - residual)}px`;
+    }
+  };
+  const headerTop = header.getBoundingClientRect().top;
+  const collapsing = !sessions[si].collapsed;
+  sessions[si].collapsed = collapsing;
+  header.setAttribute('aria-expanded', String(!collapsing));
+  if (reduced) {
+    site.classList.toggle('collapsed', collapsing);
+    keepHeaderStill(headerTop);
+    return;
   }
-  const job = await waitForJob(s.jobId);
-  s.images = job.images;
-  setBusy(false);
-  renderSessions();
+  site.dataset.animating = 'true';
+  if (!sessions[si].collapsed) {
+    site.style.marginTop = '';
+    site.classList.remove('collapsed');
+    keepHeaderStill(headerTop);
+    const animation = body.animate([
+      { opacity:0, clipPath:'inset(0 0 100% 0)', transform:'translateY(-6px)' },
+      { opacity:1, clipPath:'inset(0)', transform:'none' },
+    ], { duration:400, easing:'cubic-bezier(.2,.72,.25,1)' });
+    await animation.finished.catch(() => {});
+  } else {
+    const animation = body.animate([
+      { opacity:1, clipPath:'inset(0)', transform:'none' },
+      { opacity:0, clipPath:'inset(0 0 100% 0)', transform:'translateY(-6px)' },
+    ], { duration:320, easing:'cubic-bezier(.4,0,.3,1)' });
+    await animation.finished.catch(() => {});
+    site.classList.add('collapsed');
+    keepHeaderStill(headerTop);
+  }
+  delete site.dataset.animating;
 }
+const CAT_TO_ALL = { 'Logo': 'all-logo', 'Display Images': 'all-display', 'Mockups': 'all-mockups', 'Showcase': 'all-showcase', 'Single Pages': 'all-singlepages', 'Single Sections': 'all-singlesections', 'Showcase Videos': 'all-showcasevideo', 'Screenshots': 'all-screenshots', 'Video': 'all-video' };
 async function regenerate(si, key, btn) {
-  if (busy) return;
-  const s = sessions[si];
-  setBusy(true);
-  btn.disabled = true;
-  btn.textContent = 'Regenerating…';
-  btn.closest('.shot').classList.add('busy');
-  $('logbox').setAttribute('open', '');
-  const resp = await fetch('/api/regenerate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jobId: s.jobId, image: key }) });
-  if (!resp.ok) {
-    const { error } = await resp.json();
-    alert(error || 'Regenerate failed');
-    setBusy(false); renderSessions(); return;
-  }
-  const job = await waitForJob(s.jobId);
-  s.images = job.images;
-  setBusy(false);
-  renderSessions();
+  if (btn) btn.closest('.shot').classList.add('busy');
+  return runRegeneration([{ si, image: key }], 'Refreshing image');
 }
 
 // ---------- selection ----------
-function togglePick(sid, cb) { cb.checked ? selected.add(sid) : selected.delete(sid); updateSelButtons(); }
-function updateSelButtons() {
-  $('dl-selected-global').disabled = selected.size === 0;
-  document.querySelectorAll('.dl-sel').forEach((b) => {
-    const si = +b.dataset.si, cat = CATEGORIES.find((c) => c.name === b.dataset.cat);
-    const any = sessions[si] && sessions[si].images.some((i) => i.key && cat.match(i.key) && selected.has(si + '|' + i.key));
-    b.disabled = !any;
-  });
-}
-function selectCat(si, catName) {
-  const cat = CATEGORIES.find((c) => c.name === catName);
-  sessions[si].images.forEach((i) => { if (i.key && cat.match(i.key)) selected.add(si + '|' + i.key); });
-  renderSessions();
-}
-function selectAllGlobal() {
-  sessions.forEach((s, si) => s.images.forEach((i) => { if (i.key) selected.add(si + '|' + i.key); }));
-  renderSessions();
-}
 const itemOf = (si, key) => { const i = sessions[si].images.find((x) => x.key === key); return { ...i, slug: sessions[si].slug, displayName: sessions[si].displayName || sessions[si].slug }; };
 const siteItems = (si) => sessions[si].images.filter((i) => i.key).map((i) => ({ ...i, slug: sessions[si].slug, displayName: sessions[si].displayName || sessions[si].slug }));
-function selectedItems() {
-  return [...selected].map((sid) => { const [si, key] = sid.split('|'); return sessions[+si] ? itemOf(+si, key) : null; }).filter(Boolean);
+function scopeEntries(scope, si = 0, catName = '') {
+  const rows = [];
+  sessions.forEach((session, index) => {
+    if ((scope === 'site' || scope === 'category') && index !== si) return;
+    const cat = scope === 'category' ? CATEGORIES.find((item) => item.name === catName) : null;
+    session.images.forEach((image) => { if (image.key && (!cat || cat.match(image.key))) rows.push({ si: index, key: image.key }); });
+  });
+  return rows;
 }
-function downloadSelected() { if (selected.size) requestExport(selectedItems()); }
-function downloadCat(si, catName) {
-  const cat = CATEGORIES.find((c) => c.name === catName);
-  const items = sessions[si].images.filter((i) => i.key && cat.match(i.key) && selected.has(si + '|' + i.key)).map((i) => ({ ...i, slug: sessions[si].slug, displayName: sessions[si].displayName || sessions[si].slug }));
-  if (items.length) requestExport(items);
+const selectedIn = (entries) => entries.filter((entry) => selected.has(`${entry.si}|${entry.key}`));
+function togglePick(sid, cb) { cb.checked ? selected.add(sid) : selected.delete(sid); syncScopeControls(); }
+function toggleScopeSelection(scope, si, catName, checked) {
+  scopeEntries(scope, si, catName).forEach((entry) => checked ? selected.add(`${entry.si}|${entry.key}`) : selected.delete(`${entry.si}|${entry.key}`));
+  renderSessions();
 }
-function downloadAll() { requestExport(sessions.flatMap((s, si) => siteItems(si))); }
+function syncScopeControls() {
+  const apply = (root, entries) => {
+    if (!root) return;
+    const count = selectedIn(entries).length;
+    const pick = root.querySelector('.scope-pick') || (root.id === 'session-head' ? $('pick-global') : null);
+    if (pick) { pick.checked = entries.length > 0 && count === entries.length; pick.indeterminate = count > 0 && count < entries.length; }
+    const suffix = count ? `selected (${count})` : 'all';
+    for (const [selector, action] of [['.scope-remove', 'Remove'], ['.scope-download', 'Download'], ['.scope-regen', 'Regenerate']]) {
+      const button = root.querySelector(selector); if (button) button.textContent = `${action} ${suffix}`;
+    }
+  };
+  apply($('session-head'), scopeEntries('global'));
+  document.querySelectorAll('.site').forEach((root, si) => apply(root.querySelector('.site-head'), scopeEntries('site', si)));
+  document.querySelectorAll('.cat-row').forEach((root) => apply(root, scopeEntries('category', +root.dataset.si, root.dataset.cat)));
+}
+function updateSelButtons() { syncScopeControls(); }
+function downloadScope(scope, si = 0, catName = '') {
+  const entries = scopeEntries(scope, si, catName), chosen = selectedIn(entries);
+  requestExport((chosen.length ? chosen : entries).map((entry) => itemOf(entry.si, entry.key)));
+}
+function removeOne(si, key) {
+  if (!confirm('Remove this output from the current session? The saved file will remain on disk.')) return;
+  sessions[si].images = sessions[si].images.filter((image) => image.key !== key);
+  selected.delete(`${si}|${key}`); renderSessions();
+}
+function removeScope(scope, si = 0, catName = '') {
+  const entries = scopeEntries(scope, si, catName), chosen = selectedIn(entries), targets = chosen.length ? chosen : entries;
+  const wholeScope = chosen.length === 0;
+  const subject = wholeScope && scope === 'global' ? 'all websites' : wholeScope && scope === 'site' ? 'this website' : `${targets.length} output${targets.length === 1 ? '' : 's'}`;
+  if (!targets.length || !confirm(`Remove ${subject} from the current session? Saved files will remain on disk.`)) return;
+  if (wholeScope && scope === 'global') { sessions.splice(0); selected.clear(); renderSessions(); return; }
+  if (wholeScope && scope === 'site') { sessions.splice(si, 1); selected.clear(); renderSessions(); return; }
+  const ids = new Set(targets.map((entry) => `${entry.si}|${entry.key}`));
+  sessions.forEach((session, index) => { session.images = session.images.filter((image) => !ids.has(`${index}|${image.key}`)); });
+  selected.clear(); renderSessions();
+}
+async function runRegeneration(tasks, title) {
+  if (busy || !tasks.length) return;
+  setBusy(true); cancelRequested = false; showProgress(title, 'Getting fresh captures');
+  try {
+    for (let index = 0; index < tasks.length && !cancelRequested; index++) {
+      const task = tasks[index], session = sessions[task.si];
+      activeJobId = session.jobId;
+      const resp = await fetch('/api/regenerate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jobId: session.jobId, image: task.image }) });
+      if (!resp.ok) throw new Error((await resp.json()).error || 'Regeneration failed');
+      const job = await waitForJob(session.jobId, tasks.length > 1 ? `${index + 1} of ${tasks.length}` : '');
+      session.images = job.images;
+    }
+  } catch (error) { alert(error.message); }
+  finally { activeJobId = null; setBusy(false); renderSessions(); }
+}
+function regenerateScope(scope, si = 0, catName = '') {
+  const entries = scopeEntries(scope, si, catName), chosen = selectedIn(entries);
+  let tasks = chosen.map((entry) => ({ ...entry, image: entry.key }));
+  if (!tasks.length) {
+    if (scope === 'category') tasks = [{ si, image: CAT_TO_ALL[catName] }];
+    else {
+      const sites = scope === 'site' ? [si] : sessions.map((_, index) => index);
+      tasks = sites.flatMap((index) => CATEGORIES.filter((cat) => sessions[index].images.some((image) => image.key && cat.match(image.key))).map((cat) => ({ si: index, image: CAT_TO_ALL[cat.name] })));
+    }
+  }
+  return runRegeneration(tasks, chosen.length ? `Refreshing ${chosen.length} selected` : 'Refreshing portfolio');
+}
 
 // ---------- export (Figma-style multi-preset) ----------
 const isVideoItem = (it) => it.type === 'video' || isVideoKey(it.key);
@@ -1057,9 +1280,9 @@ async function runExport() {
             if (r.path) p = r.path; else { alert('GIF conversion failed: ' + (r.error || 'unknown')); continue; }
           } else {
             // MP4 requested but the source might be webm (fallback) — serve as-is
-            if (/\.webm$/.test(it.path)) { outs.push({ name: it.file, blob: await (await fetch('/' + it.path)).blob(), slug: it.slug }); continue; }
+            if (/\.webm$/.test(it.path)) { outs.push({ name: it.file, blob: await (await fetch('/' + it.path)).blob(), slug: it.slug, key: it.key }); continue; }
           }
-          outs.push({ name: vidName(it, vf), blob: await (await fetch('/' + p)).blob(), slug: it.slug });
+          outs.push({ name: vidName(it, vf), blob: await (await fetch('/' + p)).blob(), slug: it.slug, key: it.key });
         }
         continue;
       }
@@ -1068,7 +1291,7 @@ async function runExport() {
         const blob = p.fmt === 'svg'
           ? new Blob([svgText], { type: 'image/svg+xml' })
           : await svgToRaster(svgText, p.fmt, p.scale);
-        outs.push({ name: imgName(it, p), blob, slug: it.slug });
+        outs.push({ name: imgName(it, p), blob, slug: it.slug, key: it.key });
       }
     }
     if (!outs.length) return;
@@ -1081,8 +1304,9 @@ async function runExport() {
       return ({ svg:'SVG', png:'PNG', jpg:'JPG', jpeg:'JPG', mp4:'MP4', webm:'WEBM', gif:'GIF' })[ext] || 'Other';
     };
     outs.forEach((o) => {
-      const site = multiSite ? `${folders.get(o.slug) || o.slug}/` : '';
-      zip.file(`${site}${typeFolder(o.name)}/${o.name}`, o.blob);
+      const site = `${folders.get(o.slug) || o.slug}/`;
+      const category = (CATEGORIES.find((item) => item.match(o.key)) || { name: 'Other' }).name;
+      zip.file(`${site}${exportSafeName(category)}/${typeFolder(o.name)}/${o.name}`, o.blob);
     });
     const archiveName = multiSite ? 'Portfolio Export.zip' : `${folders.values().next().value || 'Portfolio Export'}.zip`;
     await saveBlob(await zip.generateAsync({ type: 'blob' }), archiveName);
@@ -1106,7 +1330,8 @@ loadExportPrefs();
 (() => {
   const aside = document.querySelector('aside');
   const rz = $('resizer');
-  const sidebarStorageKey = 'sidebarW-portfolio-generator';
+  const defaultSidebarWidth = 296;
+  const sidebarStorageKey = 'sidebarW-portfolio-generator-v3';
   const saved = parseInt(localStorage.getItem(sidebarStorageKey), 10);
   if (saved >= 220 && saved <= 360) aside.style.width = saved + 'px';
   let dragging = false;
@@ -1119,7 +1344,7 @@ loadExportPrefs();
     if (!dragging) return;
     dragging = false;
     rz.classList.remove('active');
-    localStorage.setItem(sidebarStorageKey, parseInt(aside.style.width, 10) || 252);
+    localStorage.setItem(sidebarStorageKey, parseInt(aside.style.width, 10) || defaultSidebarWidth);
   });
 })();
 </script>
