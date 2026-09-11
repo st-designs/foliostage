@@ -1,6 +1,6 @@
 # Roadmap
 
-Portfolio Generator is focused on reliable website capture and polished portfolio assets with very little setup. This document covers the remaining product work without committing to release dates.
+FolioStage — Portfolio Generator is focused on reliable website capture and polished portfolio assets with very little setup. This document covers the remaining product work without committing to release dates.
 
 ## Available now
 
@@ -46,4 +46,4 @@ Explore a browser extension for capturing signed-in pages that cannot be reached
 - Editing the source website
 - A template marketplace
 
-Portfolio Generator will continue to favour dependable capture, strong automatic layouts, and exports that are easy to finish in a design tool.
+FolioStage — Portfolio Generator will continue to favour dependable capture, strong automatic layouts, and exports that are easy to finish in a design tool.

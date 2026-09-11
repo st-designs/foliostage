@@ -61,7 +61,7 @@ async function createWindow() {
     minWidth: 1040,
     minHeight: 680,
     backgroundColor: '#f6f6f8',
-    title: 'Portfolio Generator',
+    title: 'FolioStage — Portfolio Generator',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     ...(process.platform === 'darwin' && { trafficLightPosition: MACOS_TRAFFIC_LIGHT_POSITION }),
     show: false,
@@ -82,7 +82,7 @@ async function createWindow() {
 }
 
 app.whenReady().then(createWindow).catch((error) => {
-  dialog.showErrorBox('Portfolio Generator could not start', error.message);
+  dialog.showErrorBox('FolioStage — Portfolio Generator could not start', error.message);
   app.quit();
 });
 app.on('window-all-closed', () => {

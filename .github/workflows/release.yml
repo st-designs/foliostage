@@ -53,8 +53,8 @@ jobs:
       - name: Prepare macOS packages
         run: |
           mkdir release
-          cp "$(find dist -maxdepth 1 -name '*.dmg' -print -quit)" "release/Portfolio-Generator-macOS-${{ matrix.label }}.dmg"
-          cp "$(find dist -maxdepth 1 -name '*.zip' -print -quit)" "release/Portfolio-Generator-macOS-${{ matrix.label }}.zip"
+          cp "$(find dist -maxdepth 1 -name '*.dmg' -print -quit)" "release/FolioStage-Portfolio-Generator-macOS-${{ matrix.label }}.dmg"
+          cp "$(find dist -maxdepth 1 -name '*.zip' -print -quit)" "release/FolioStage-Portfolio-Generator-macOS-${{ matrix.label }}.zip"
       - uses: actions/upload-artifact@v7
         with:
           name: macos-${{ matrix.arch }}
@@ -83,8 +83,8 @@ jobs:
           $installer = Get-ChildItem dist -Filter '*Setup*.exe' | Select-Object -First 1
           $portable = Get-ChildItem dist -Filter '*.exe' | Where-Object { $_.Name -notlike '*Setup*' } | Select-Object -First 1
           if (-not $installer -or -not $portable) { throw 'Windows packages were not produced' }
-          Copy-Item $installer.FullName release/Portfolio-Generator-Windows-Setup.exe
-          Copy-Item $portable.FullName release/Portfolio-Generator-Windows-Portable.exe
+          Copy-Item $installer.FullName release/FolioStage-Portfolio-Generator-Windows-Setup.exe
+          Copy-Item $portable.FullName release/FolioStage-Portfolio-Generator-Windows-Portable.exe
       - uses: actions/upload-artifact@v7
         with:
           name: windows-x64

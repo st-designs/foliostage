@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Portfolio Generator</title>
+<title>FolioStage — Portfolio Generator</title>
 <script src="/vendor/jszip.min.js"></script>
 <style>
   :root { --canvas:#f7f7f9; --panel:#fdfdfe; --bg:#fff; --surface:#f2f3f6; --surface-2:#e7e9ee; --accent:#3b4a9e; --accent-8:rgba(59,74,158,.08); --accent-12:rgba(59,74,158,.12); --text:#17181c; --text-2:#61646e; --text-3:#9a9ea9; --line:#e5e7ec; --line-2:#eff0f4; --attention:#b4531f; --attention-10:rgba(180,83,31,.10); --navy:var(--accent); --navy-2:#303d87; --grey:var(--surface-2); --border:var(--line); --muted:var(--text-2); --gutter:10px; --sidebar-w:296px; --titlebar:48px; --panel-r:14px; }
@@ -20,7 +20,7 @@
   #resizer:hover::after,#resizer.active::after { background:#c7cad2; }
   .side-scroll { flex:1; overflow-y:auto; padding:24px 16px 20px; }
   body.desktop .side-scroll { padding-top:56px; }
-  aside h1 { font-size:20px; line-height:1.25; letter-spacing:-.025em; font-weight:650; }
+  aside h1 { font-size:16px; line-height:1.3; letter-spacing:-.018em; font-weight:650; white-space:nowrap; }
   aside p.sub { color:var(--text-2); font-size:12px; margin:6px 0 20px; line-height:1.55; }
   label { display:block; font-size:11.5px; font-weight:600; margin-bottom:6px; color:var(--text-2); }
   input,textarea,select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:8px; font-size:13px; color:var(--text); background:var(--surface); transition:background .15s,border-color .15s,box-shadow .15s; }
@@ -194,7 +194,7 @@
 
 <aside>
   <div class="side-scroll">
-    <h1>Portfolio Generator</h1>
+    <h1>FolioStage <span aria-hidden="true">—</span> Portfolio Generator</h1>
     <p class="sub">Turn a live website into polished portfolio images, device mockups, and motion.</p>
 
     <div class="source-tabs" role="tablist" aria-label="Website source">

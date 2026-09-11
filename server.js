@@ -1,5 +1,5 @@
 /**
- * Portfolio Generator server.
+ * FolioStage — Portfolio Generator server.
  * Captures live and saved websites, composes portfolio assets, and serves the UI.
  */
 const express = require('express');
@@ -857,7 +857,7 @@ function startServer({ port = PORT, host = HOST, shouldOpen = !process.env.NO_OP
   const url = `http://localhost:${actualPort}`;
   console.log(`
   ┌─────────────────────────────────────────────────────┐
-  │   Portfolio Generator is running                    │
+  │   FolioStage — Portfolio Generator is running       │
   │                                                     │
   │   1. Your browser should open automatically.        │
   │      If not, open:  ${url}              │

@@ -1,14 +1,14 @@
-![Portfolio Generator](docs/images/banner.png)
+![FolioStage — Portfolio Generator](docs/images/banner.png)
 
-# Portfolio Generator
+# FolioStage — Portfolio Generator
 
 <p>
-  <a href="https://github.com/st-designs/portfolio-generator/releases/latest/download/Portfolio-Generator-macOS-Apple-Silicon.dmg"><img src="docs/images/button-macos.svg" alt="Download for macOS" height="58"></a>
-  <a href="https://github.com/st-designs/portfolio-generator/releases/latest/download/Portfolio-Generator-Windows-Setup.exe"><img src="docs/images/button-windows.svg" alt="Download for Windows" height="58"></a>
+  <a href="https://github.com/st-designs/portfolio-generator/releases/latest/download/FolioStage-Portfolio-Generator-macOS-Apple-Silicon.dmg"><img src="docs/images/button-macos.svg" alt="Download for macOS" height="58"></a>
+  <a href="https://github.com/st-designs/portfolio-generator/releases/latest/download/FolioStage-Portfolio-Generator-Windows-Setup.exe"><img src="docs/images/button-windows.svg" alt="Download for Windows" height="58"></a>
   <a href="#web-version"><img src="docs/images/button-web.svg" alt="Open in browser — coming soon" height="58"></a>
 </p>
 
-Portfolio Generator turns a live or saved website into a polished set of portfolio assets. Give it a URL, ZIP, HTML file, or complete website folder and it will capture the site, check the results, and arrange the strongest screens into ready-to-use mockups, showcases, display images, screenshots, and motion exports.
+FolioStage — Portfolio Generator turns a live or saved website into a polished set of portfolio assets. Give it a URL, ZIP, HTML file, or complete website folder and it will capture the site, check the results, and arrange the strongest screens into ready-to-use mockups, showcases, display images, screenshots, and motion exports.
 
 Everything runs locally. There are no accounts, projects, or cloud storage to manage, and each session stays temporary until you export it.
 
@@ -27,7 +27,7 @@ Everything runs locally. There are no accounts, projects, or cloud storage to ma
 
 ## A quick look
 
-![Portfolio Generator start screen](docs/images/app-overview.png)
+![FolioStage — Portfolio Generator start screen](docs/images/app-overview.png)
 
 The sidebar keeps the common path short while leaving capture behavior, render sizes, section styles, and seeded layouts available when needed.
 
@@ -37,7 +37,7 @@ Results are grouped by website and output type. Individual assets or complete se
 
 ## Getting started
 
-Portfolio Generator requires Node.js 22.12 or newer.
+FolioStage — Portfolio Generator requires Node.js 22.12 or newer.
 
 ```bash
 git clone https://github.com/st-designs/portfolio-generator.git
@@ -126,7 +126,7 @@ npm run docs:screenshots
 
 ## Web version
 
-Portfolio Generator is a local tool. A public hosted version needs a proper job queue, rate limiting, URL-fetch protections, and an output cleanup policy before it should be exposed to the internet. Authenticated websites are also outside the current capture flow unless they can be supplied as a saved site.
+FolioStage — Portfolio Generator is a local tool. A public hosted version needs a proper job queue, rate limiting, URL-fetch protections, and an output cleanup policy before it should be exposed to the internet. Authenticated websites are also outside the current capture flow unless they can be supplied as a saved site.
 
 The browser-hosted version is coming soon. For now, `npm start` runs the complete browser interface locally.
 
@@ -134,6 +134,6 @@ Planned work and the reasoning behind it live in [docs/ROADMAP.md](docs/ROADMAP.
 
 ## License
 
-Copyright © 2026 ST Designs. Portfolio Generator is free and open-source software licensed under the [GNU Affero General Public License v3.0 only](LICENSE).
+Copyright © 2026 ST Designs. FolioStage — Portfolio Generator is free and open-source software licensed under the [GNU Affero General Public License v3.0 only](LICENSE).
 
 You may use, study, modify, and redistribute the project under the AGPL terms. Modified versions offered to users over a network must also offer those users the corresponding source code. Copyright ownership remains with ST Designs and the respective contributors.
