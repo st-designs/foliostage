@@ -2,11 +2,13 @@
 
 # FolioStage — Portfolio Generator
 
-<p>
-  <a href="https://github.com/st-designs/foliostage-portfolio-generator/releases/latest/download/FolioStage-Portfolio-Generator-macOS-Apple-Silicon.dmg"><img src="docs/images/button-macos.svg" alt="Download for macOS" height="58"></a>
-  <a href="https://github.com/st-designs/foliostage-portfolio-generator/releases/latest/download/FolioStage-Portfolio-Generator-Windows-Setup.exe"><img src="docs/images/button-windows.svg" alt="Download for Windows" height="58"></a>
-  <a href="#web-version"><img src="docs/images/button-web.svg" alt="Open in browser — coming soon" height="58"></a>
+<p align="center">
+  <a href="https://github.com/st-designs/foliostage/releases/latest/download/FolioStage-Portfolio-Generator-macOS-Apple-Silicon.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/buttons/macos-dark.png"><img src="docs/images/buttons/macos-light.png" alt="Download for macOS" height="40"></picture></a>
+  &nbsp;
+  <a href="https://github.com/st-designs/foliostage/releases/latest/download/FolioStage-Portfolio-Generator-Windows-Setup.exe"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/buttons/windows-dark.png"><img src="docs/images/buttons/windows-light.png" alt="Download for Windows" height="40"></picture></a>
 </p>
+
+<p align="center"><sub>Apple Silicon and Intel builds for macOS · installer and portable builds for Windows · web version coming soon</sub></p>
 
 FolioStage — Portfolio Generator turns a live or saved website into a polished set of portfolio assets. Give it a URL, ZIP, HTML file, or complete website folder and it will capture the site, check the results, and arrange the strongest screens into ready-to-use mockups, showcases, display images, screenshots, and motion exports.
 
@@ -40,8 +42,8 @@ Results are grouped by website and output type. Individual assets or complete se
 FolioStage — Portfolio Generator requires Node.js 22.12 or newer.
 
 ```bash
-git clone https://github.com/st-designs/foliostage-portfolio-generator.git
-cd foliostage-portfolio-generator
+git clone https://github.com/st-designs/foliostage.git
+cd foliostage
 npm run setup
 ```
 
