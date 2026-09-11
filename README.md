@@ -3,8 +3,8 @@
 # FolioStage — Portfolio Generator
 
 <p>
-  <a href="https://github.com/st-designs/portfolio-generator/releases/latest/download/FolioStage-Portfolio-Generator-macOS-Apple-Silicon.dmg"><img src="docs/images/button-macos.svg" alt="Download for macOS" height="58"></a>
-  <a href="https://github.com/st-designs/portfolio-generator/releases/latest/download/FolioStage-Portfolio-Generator-Windows-Setup.exe"><img src="docs/images/button-windows.svg" alt="Download for Windows" height="58"></a>
+  <a href="https://github.com/st-designs/foliostage-portfolio-generator/releases/latest/download/FolioStage-Portfolio-Generator-macOS-Apple-Silicon.dmg"><img src="docs/images/button-macos.svg" alt="Download for macOS" height="58"></a>
+  <a href="https://github.com/st-designs/foliostage-portfolio-generator/releases/latest/download/FolioStage-Portfolio-Generator-Windows-Setup.exe"><img src="docs/images/button-windows.svg" alt="Download for Windows" height="58"></a>
   <a href="#web-version"><img src="docs/images/button-web.svg" alt="Open in browser — coming soon" height="58"></a>
 </p>
 
@@ -40,7 +40,7 @@ Results are grouped by website and output type. Individual assets or complete se
 FolioStage — Portfolio Generator requires Node.js 22.12 or newer.
 
 ```bash
-git clone https://github.com/st-designs/portfolio-generator.git
+git clone https://github.com/st-designs/foliostage-portfolio-generator.git
 cd portfolio-generator
 npm run setup
 ```
