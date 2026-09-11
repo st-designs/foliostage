@@ -41,7 +41,7 @@ FolioStage — Portfolio Generator requires Node.js 22.12 or newer.
 
 ```bash
 git clone https://github.com/st-designs/foliostage-portfolio-generator.git
-cd portfolio-generator
+cd foliostage-portfolio-generator
 npm run setup
 ```
 
